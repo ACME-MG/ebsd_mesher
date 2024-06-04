@@ -1,0 +1,5 @@
+.vscode
+
+**/nohup.out
+**/__pycache__/
+**/results/
