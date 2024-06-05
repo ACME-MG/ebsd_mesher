@@ -1,12 +1,13 @@
 """
- Title:         Exporter
- Description:   Exports stuff
+ Title:         Exodus
+ Description:   For manipulating exodus files
  Author:        Janzen Choi
 
 """
 
 # Libraries
 import math, pyvista as pv
+import netCDF4 as nc
 
 def map_spn_to_exo(exo_path:str, spn_path:str, spn_size:tuple) -> tuple:
     """
@@ -60,8 +61,22 @@ def map_spn_to_exo(exo_path:str, spn_path:str, spn_size:tuple) -> tuple:
         confidence = round(freq / total * 100, 2)
 
         # Update dictionaries
-        spn_to_exo[mode] = i+1
+        exo_id = int(str(exo_grains.get_block_name(i)).split(" ")[-1])
+        spn_to_exo[mode] = exo_id
         confidence_list.append(confidence)
 
     # Return
     return spn_to_exo, confidence_list
+
+def renumber_grains(exodus_path:str) -> None:
+    """
+    Renumbers the grain IDs in an exodus file so that they
+    start from 1 and end at num_grains
+
+    Parameters:
+    * `exodus_path`: Path to the exodus file
+    """
+    ds = nc.Dataset(exodus_path, mode="r+")
+    block_ids = ds.variables["eb_prop1"]
+    block_ids[:] = range(1, len(block_ids)+1)
+    ds.close()

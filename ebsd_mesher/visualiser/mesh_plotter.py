@@ -64,6 +64,8 @@ class MeshPlotter:
             # Plot cells for the grain
             for cell_id in range(grain.n_cells):
                 cell_coordinates = get_cell_coordinates(grain, cell_id)
+                if cell_coordinates == []:
+                    continue # only consider surface cells
                 cell_coordinates = order_vertices(cell_coordinates)
                 polygon = patches.Polygon(cell_coordinates, closed=True, fill=True, facecolor=ipf_colour, edgecolor="black")
                 self.axis.add_patch(polygon)

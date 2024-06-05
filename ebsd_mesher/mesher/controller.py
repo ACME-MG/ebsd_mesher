@@ -11,7 +11,8 @@ from ebsd_mesher.visualiser.ebsd_plotter import EBSDPlotter
 from ebsd_mesher.visualiser.mesh_plotter import MeshPlotter
 from ebsd_mesher.mapper.gridder import read_pixels, get_grain_ids, get_void_pixel_grid
 from ebsd_mesher.mapper.improver import clean_pixel_grid, smoothen_edges, pad_edges, remove_small_grains
-from ebsd_mesher.maths.statistics import map_spn_to_exo
+from ebsd_mesher.maths.orientation import deg_to_rad
+from ebsd_mesher.mesher.exodus import map_spn_to_exo, renumber_grains
 from ebsd_mesher.mesher.mesher import coarse_mesh
 from ebsd_mesher.helper.io import get_file_path_exists, dict_to_csv
 from ebsd_mesher.visualiser.plotter import save_plot
@@ -34,6 +35,7 @@ class Controller:
         self.spn_path    = f"{output_dir}/voxels.spn"
         self.exodus_path = f"{output_dir}/mesh.e"
         self.map_path    = f"{output_dir}/grain_map.csv"
+        self.ori_path    = f"{output_dir}/orientations.csv"
         self.thickness   = None
         self.spn_to_exo  = None
 
@@ -198,11 +200,12 @@ class Controller:
         * `num_processors`: The number of processors to use to create the mesh
         """
 
-        # Generate the mesh
+        # Generate the mesh and renumber grains
         print()
         self.thickness = thickness
         coarse_mesh(psculpt_path, thickness, num_processors, self.pixel_grid,
                     self.step_size, self.input_path, self.spn_path, self.exodus_path)
+        renumber_grains(self.exodus_path)
         print()
         
         # Map the grains of the EBSD map to the mesh
@@ -216,6 +219,16 @@ class Controller:
             "confidence": confidence_list
         }
         dict_to_csv(map_dict, self.map_path)
+
+        # Save orientations
+        ori_dict = {"phi_1": [], "Phi": [], "phi_2": []}
+        exo_to_spn = dict(zip(self.spn_to_exo.values(), self.spn_to_exo.keys()))
+        for exo_id in exo_to_spn.keys():
+            phi_1, Phi, phi_2 = self.grain_map[exo_to_spn[exo_id]].get_orientation()
+            ori_dict["phi_1"].append(deg_to_rad(phi_1))
+            ori_dict["Phi"].append(deg_to_rad(Phi))
+            ori_dict["phi_2"].append(deg_to_rad(phi_2))
+        dict_to_csv(ori_dict, self.ori_path, add_header=False)
 
     def plot_mesh(self, mesh_path:str, ipf:str="x", figure_x:float=10) -> None:
         """

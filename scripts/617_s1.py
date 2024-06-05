@@ -27,8 +27,8 @@ itf.plot_ebsd(
 )
 
 # Process the EBSD map
-# itf.decrease_resolution(5)
-itf.decrease_resolution(10)
+itf.redefine_domain(500, 1000, 500, 1000)
+itf.decrease_resolution(5)
 itf.remove_grains(2500)
 itf.fill(15)
 itf.clean(2)
@@ -44,7 +44,7 @@ itf.plot_ebsd(
 )
 
 # Mesh the EBSD map and plot
-itf.mesh("~/cubit/psculpt.exe", thickness=3)
+itf.mesh("~/cubit/psculpt.exe", thickness=1)
 itf.plot_mesh(
     ipf      = "x",
     figure_x = 20
