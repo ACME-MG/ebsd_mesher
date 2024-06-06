@@ -12,7 +12,7 @@ from ebsd_mesher.visualiser.mesh_plotter import MeshPlotter
 from ebsd_mesher.mapper.gridder import read_pixels, get_grain_ids, get_void_pixel_grid
 from ebsd_mesher.mapper.improver import clean_pixel_grid, smoothen_edges, pad_edges, remove_small_grains
 from ebsd_mesher.maths.orientation import deg_to_rad
-from ebsd_mesher.mesher.exodus import map_spn_to_exo, renumber_grains
+from ebsd_mesher.mesher.exodus import map_spn_to_exo, renumber_grains, scale_z
 from ebsd_mesher.mesher.mesher import coarse_mesh
 from ebsd_mesher.helper.io import get_file_path_exists, dict_to_csv
 from ebsd_mesher.visualiser.plotter import save_plot
@@ -36,7 +36,7 @@ class Controller:
         self.exodus_path = f"{output_dir}/mesh.e"
         self.map_path    = f"{output_dir}/grain_map.csv"
         self.ori_path    = f"{output_dir}/orientations.csv"
-        self.thickness   = None
+        self.has_meshed  = False
         self.spn_to_exo  = None
 
     def define_headers(self, x:str, y:str, grain_id:str, phi_1:str, Phi:str, phi_2:str) -> None:
@@ -190,26 +190,31 @@ class Controller:
         ebsd_path = get_file_path_exists(ebsd_path, "png")
         save_plot(ebsd_path)
 
-    def mesh(self, psculpt_path:str, thickness:int, num_processors:int) -> None:
+    def mesh(self, psculpt_path:str, z_length:float, z_voxels:int, num_processors:int) -> None:
         """
         Generates a mesh based on an SPN file
         
         Parameters:
         * `psculpt_path`:   The path to PSculpt 
-        * `thickness`:      The thickness of the mesh (in voxels) 
+        * `z_length`:       The thickness of the mesh (in units)
+        * `z_voxels`:       The thickness of the mesh (in voxels) 
         * `num_processors`: The number of processors to use to create the mesh
         """
 
-        # Generate the mesh and renumber grains
+        # Generate the mesh
         print()
-        self.thickness = thickness
-        coarse_mesh(psculpt_path, thickness, num_processors, self.pixel_grid,
+        self.has_meshed = True
+        coarse_mesh(psculpt_path, z_voxels, num_processors, self.pixel_grid,
                     self.step_size, self.input_path, self.spn_path, self.exodus_path)
-        renumber_grains(self.exodus_path)
         print()
-        
+
+        # Renumber the grains (ascending and consecutive) and adjust the thickness
+        renumber_grains(self.exodus_path)
+        scale_factor = z_length/self.step_size/z_voxels
+        scale_z(self.exodus_path, scale_factor)
+
         # Map the grains of the EBSD map to the mesh
-        spn_size = (len(self.pixel_grid[0]), len(self.pixel_grid), self.thickness)
+        spn_size = (len(self.pixel_grid[0]), len(self.pixel_grid), z_voxels)
         self.spn_to_exo, confidence_list = map_spn_to_exo(self.exodus_path, self.spn_path, spn_size)
 
         # Save the mapping

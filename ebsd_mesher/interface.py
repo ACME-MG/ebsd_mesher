@@ -172,18 +172,19 @@ class Interface:
         ebsd_path = self.__get_output__(ebsd_path)
         self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, grain_id, boundary, id_list)
 
-    def mesh(self, psculpt_path:str, thickness:int=1, num_processors:int=1) -> None:
+    def mesh(self, psculpt_path:str, z_length:float, z_voxels:int=1, num_processors:int=1) -> None:
         """
         Generates a mesh based on an SPN file
         
         Parameters:
-        * `psculpt_path`:   The path to PSculpt 
-        * `thickness`:      The thickness of the mesh (in voxels)
+        * `psculpt_path`:   The path to PSculpt
+        * `z_length`:       The thickness of the mesh (in units)
+        * `z_voxels`:       The thickness of the mesh (in voxels)
         * `num_processors`: The number of processors to use to create the mesh
         """
         self.__print__("Generating a mesh of the EBSD map")
         self.__check_ebsd__()
-        self.__controller__.mesh(psculpt_path, thickness, num_processors)
+        self.__controller__.mesh(psculpt_path, z_length, z_voxels, num_processors)
 
     def plot_mesh(self, mesh_path:str="mesh", ipf:str="x", figure_x:float=10) -> None:
         """
@@ -211,7 +212,7 @@ class Interface:
         """
         Checks that the EBSD mesh has been generated
         """
-        if self.__controller__.thickness == None:
+        if not self.__controller__.has_meshed:
             raise ValueError("The EBSD mesh has not been generated yet!")
 
     def __print__(self, message:str, add_index:bool=True, sub_index:bool=False) -> None:

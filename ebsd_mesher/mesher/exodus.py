@@ -80,3 +80,16 @@ def renumber_grains(exodus_path:str) -> None:
     block_ids = ds.variables["eb_prop1"]
     block_ids[:] = range(1, len(block_ids)+1)
     ds.close()
+
+def scale_z(exodus_path:str, factor:float) -> None:
+    """
+    Scales the z coordinates of the cell in an exodus file
+
+    Parameters:
+    * `exodus_path`: Path to the exodus file
+    * `factor`:      The amount to scale
+    """
+    ds = nc.Dataset(exodus_path, mode="r+")
+    z_coords = ds.variables["coordz"]
+    z_coords[:] = z_coords[:] * factor
+    ds.close()
