@@ -7,12 +7,15 @@
 
 # Libraries
 import math
+from copy import deepcopy
 from ebsd_mesher.visualiser.ebsd_plotter import EBSDPlotter
 from ebsd_mesher.visualiser.mesh_plotter import MeshPlotter
-from ebsd_mesher.mapper.gridder import read_pixels, get_grain_ids, get_void_pixel_grid
+from ebsd_mesher.mapper.gridder import read_pixels, get_grain_ids, get_void_pixel_grid, VOID_PIXEL_ID
+from ebsd_mesher.mapper.grain import Grain
 from ebsd_mesher.mapper.improver import clean_pixel_grid, smoothen_edges, pad_edges, remove_small_grains
 from ebsd_mesher.maths.orientation import deg_to_rad
-from ebsd_mesher.mesher.exodus import map_spn_to_exo, renumber_grains, scale_z
+from ebsd_mesher.mesher.exodus import map_spn_to_exo, renumber_grains, get_exodus_dimension, scale_exodus_mesh
+from ebsd_mesher.mesher.exodus import straighten_interface, scale_gripped_microstructure
 from ebsd_mesher.mesher.mesher import coarse_mesh
 from ebsd_mesher.helper.io import get_file_path_exists, dict_to_csv
 from ebsd_mesher.visualiser.plotter import save_plot
@@ -27,17 +30,19 @@ class Controller:
         Parameters:
         * `output_dir`: Path to the output directory
         """
-        self.headers     = []
-        self.pixel_grid  = None
-        self.grain_map   = None
-        self.step_size   = None
-        self.input_path  = f"{output_dir}/input.i"
-        self.spn_path    = f"{output_dir}/voxels.spn"
-        self.exodus_path = f"{output_dir}/mesh.e"
-        self.map_path    = f"{output_dir}/grain_map.csv"
-        self.ori_path    = f"{output_dir}/orientations.csv"
-        self.has_meshed  = False
-        self.spn_to_exo  = None
+        self.headers      = []
+        self.pixel_grid   = None
+        self.grain_map    = None
+        self.step_size    = None
+        self.input_path   = f"{output_dir}/input.i"
+        self.spn_path     = f"{output_dir}/voxels.spn"
+        self.exodus_path  = f"{output_dir}/mesh.e"
+        self.map_path     = f"{output_dir}/grain_map.csv"
+        self.ori_path     = f"{output_dir}/orientations.csv"
+        self.summary_path = f"{output_dir}/summary.csv"
+        self.has_meshed   = False
+        self.grip_ids     = [None, None] # left, right
+        self.spn_to_exo   = None
 
     def define_headers(self, x:str, y:str, grain_id:str, phi_1:str, Phi:str, phi_2:str) -> None:
         """
@@ -154,6 +159,33 @@ class Controller:
         threshold /= self.step_size**2
         self.pixel_grid = remove_small_grains(self.pixel_grid, threshold)
 
+    def add_grips(self, num_cells:int) -> None:
+        """
+        Adds grips to the left and right of the microstructure
+        
+        Parameters:
+        * `num_cells`: The number of cells (in the x-direction) to use in the grips
+        """
+        
+        # Create grain IDs for the grips
+        grain_ids = get_grain_ids(self.pixel_grid)
+        l_grip_id = max(grain_ids+[VOID_PIXEL_ID])+1
+        r_grip_id = max(grain_ids+[VOID_PIXEL_ID])+2
+        self.grip_ids[0] = l_grip_id
+        self.grip_ids[1] = r_grip_id
+
+        # Add grip IDs to pixel grid
+        new_pixel_grid = deepcopy(self.pixel_grid)
+        for row in range(len(new_pixel_grid)):
+            new_pixel_grid[row] = [l_grip_id]*num_cells + new_pixel_grid[row] + [r_grip_id]*num_cells
+        self.pixel_grid = new_pixel_grid
+
+        # Add orientation to grips
+        l_grip_grain = Grain(0, 0, 0, num_cells*len(new_pixel_grid))
+        r_grip_grain = Grain(0, 0, 0, num_cells*len(new_pixel_grid))
+        self.grain_map[l_grip_id] = l_grip_grain
+        self.grain_map[r_grip_id] = r_grip_grain
+
     def plot_ebsd(self, ebsd_path:str, ipf:str="x", figure_x:float=10,
                   grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
         """
@@ -190,28 +222,23 @@ class Controller:
         ebsd_path = get_file_path_exists(ebsd_path, "png")
         save_plot(ebsd_path)
 
-    def mesh(self, psculpt_path:str, z_length:float, z_voxels:int, num_processors:int) -> None:
+    def mesh(self, psculpt_path:str, z_voxels:int, num_processors:int) -> None:
         """
         Generates a mesh based on an SPN file
         
         Parameters:
         * `psculpt_path`:   The path to PSculpt 
-        * `z_length`:       The thickness of the mesh (in units)
         * `z_voxels`:       The thickness of the mesh (in voxels) 
         * `num_processors`: The number of processors to use to create the mesh
         """
 
-        # Generate the mesh
+        # Generate the mesh and renumber the meshed grains (ascending and consecutive)
         print()
         self.has_meshed = True
         coarse_mesh(psculpt_path, z_voxels, num_processors, self.pixel_grid,
                     self.step_size, self.input_path, self.spn_path, self.exodus_path)
         print()
-
-        # Renumber the grains (ascending and consecutive) and adjust the thickness
         renumber_grains(self.exodus_path)
-        scale_factor = z_length/self.step_size/z_voxels
-        scale_z(self.exodus_path, scale_factor)
 
         # Map the grains of the EBSD map to the mesh
         spn_size = (len(self.pixel_grid[0]), len(self.pixel_grid), z_voxels)
@@ -229,11 +256,39 @@ class Controller:
         ori_dict = {"phi_1": [], "Phi": [], "phi_2": []}
         exo_to_spn = dict(zip(self.spn_to_exo.values(), self.spn_to_exo.keys()))
         for exo_id in exo_to_spn.keys():
+            if exo_to_spn[exo_id] in [VOID_PIXEL_ID]:
+                continue
             phi_1, Phi, phi_2 = self.grain_map[exo_to_spn[exo_id]].get_orientation()
             ori_dict["phi_1"].append(deg_to_rad(phi_1))
             ori_dict["Phi"].append(deg_to_rad(Phi))
             ori_dict["phi_2"].append(deg_to_rad(phi_2))
         dict_to_csv(ori_dict, self.ori_path, add_header=False)
+
+    def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
+        """
+        Fixes the interface between the grip and the microstructure
+
+        Parameters:
+        * `grip_length`:  The desired length of the grip
+        * `micro_length`: The desired length of the microstructure
+        """
+        l_grip_id = self.spn_to_exo[self.grip_ids[0]]
+        r_grip_id = self.spn_to_exo[self.grip_ids[1]]
+        straighten_interface(self.exodus_path, l_grip_id, left=True)
+        straighten_interface(self.exodus_path, r_grip_id, left=False)
+        scale_gripped_microstructure(self.exodus_path, l_grip_id, r_grip_id, grip_length, micro_length)
+
+    def scale_mesh(self, length:float, direction:str="x") -> None:
+        """
+        Scales the mesh to a certain length along a certain direction
+
+        Parameters:
+        * `length`:    The length to scale the mesh to
+        * `direction`: The direction to conduct the scaling
+        """
+        mesh_dimension = get_exodus_dimension(self.exodus_path, direction)
+        factor = length / mesh_dimension
+        scale_exodus_mesh(self.exodus_path, factor, direction)
 
     def plot_mesh(self, mesh_path:str, ipf:str="x", figure_x:float=10) -> None:
         """

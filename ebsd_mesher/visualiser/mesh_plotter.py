@@ -10,6 +10,7 @@ import pyvista as pv
 import itertools
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from ebsd_mesher.mapper.gridder import VOID_PIXEL_ID
 from ebsd_mesher.maths.ipf_cubic import euler_to_rgb
 
 # Mesh Plotter class
@@ -54,9 +55,13 @@ class MeshPlotter:
         # Read mesh and iterate through grains
         mesh_info = pv.read(self.exodus_path)[0]
         for i, grain in enumerate(mesh_info):
-            
-            # Get IPF colour
+
+            # Get grain ID and ignore void
             ebsd_id = exo_to_spn[i+1]
+            if ebsd_id in [VOID_PIXEL_ID]:
+                continue
+
+            # Get IPF colour
             euler = self.grain_map[ebsd_id].get_orientation()
             ipf_colour = euler_to_rgb(*euler, ipf=ipf)
             ipf_colour = [ipf/255 for ipf in ipf_colour]

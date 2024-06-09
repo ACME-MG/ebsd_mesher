@@ -78,6 +78,30 @@ class Interface:
         self.__print__(f"Adding the EBSD map")
         self.__controller__.import_ebsd(ebsd_path, step_size)
 
+    def get_dimensions(self) -> dict:
+        """
+        Returns the mesh dimensions as a dictionary
+        """
+        self.__print__("Retrieving the dimensions of the EBSD map")
+        self.__check_ebsd__()
+        x_size = len(self.__controller__.pixel_grid[0])*self.__controller__.step_size
+        y_size = len(self.__controller__.pixel_grid)*self.__controller__.step_size
+        return {"x": x_size, "y": y_size}
+
+    def add_unoriented(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
+        """
+        Adds a rectangle with no orientations
+        
+        Parameters:
+        * `x_min`: The lowest x value of the unoriented rectangle
+        * `x_max`: The highest x value of the unoriented rectangle
+        * `y_min`: The lowest y value of the unoriented rectangle
+        * `y_max`: The highest y value of the unoriented rectangle
+        """
+        self.__print__(f"Adding unoriented rectangle to the EBSD map")
+        self.__check_ebsd__()
+        self.__controller__.add_unoriented(x_min, x_max, y_min, y_max)
+
     def redefine_domain(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
         """
         Redefines the domain
@@ -150,6 +174,17 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.remove_grains(threshold)
 
+    def add_grips(self, num_cells:int) -> None:
+        """
+        Adds grips to the left and right of the microstructure
+        
+        Parameters:
+        * `num_cells`: The number of cells (in the x-direction) to use in the grips
+        """
+        self.__print__(f"Adding grips to the left and right of the EBSD map")
+        self.__check_ebsd__()
+        self.__controller__.add_grips(num_cells)
+
     def plot_ebsd(self, ebsd_path:str="ebsd", ipf:str="x", figure_x:float=10,
                   grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
         """
@@ -172,19 +207,42 @@ class Interface:
         ebsd_path = self.__get_output__(ebsd_path)
         self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, grain_id, boundary, id_list)
 
-    def mesh(self, psculpt_path:str, z_length:float, z_voxels:int=1, num_processors:int=1) -> None:
+    def mesh(self, psculpt_path:str, z_voxels:int=1, num_processors:int=1) -> None:
         """
         Generates a mesh based on an SPN file
         
         Parameters:
         * `psculpt_path`:   The path to PSculpt
-        * `z_length`:       The thickness of the mesh (in units)
         * `z_voxels`:       The thickness of the mesh (in voxels)
         * `num_processors`: The number of processors to use to create the mesh
         """
         self.__print__("Generating a mesh of the EBSD map")
         self.__check_ebsd__()
-        self.__controller__.mesh(psculpt_path, z_length, z_voxels, num_processors)
+        self.__controller__.mesh(psculpt_path, z_voxels, num_processors)
+
+    def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
+        """
+        Fixes the interface between the grip and the microstructure
+
+        Parameters:
+        * `grip_length`:  The desired length of the grip
+        * `micro_length`: The desired length of the microstructure
+        """
+        self.__print__("Fixing the interface between the grip and the microstructure")
+        self.__check_grips__()
+        self.__controller__.fix_grip_interfaces(grip_length, micro_length)
+
+    def scale_mesh(self, length:float, direction:str="x") -> None:
+        """
+        Scales the mesh to a certain length along a certain direction
+
+        Parameters:
+        * `length`:    The length to scale the mesh to
+        * `direction`: The direction to conduct the scaling
+        """
+        self.__print__(f"Scaling the mesh along the {direction}-axis to {length}")
+        self.__check_mesh__()
+        self.__controller__.scale_mesh(length, direction)
 
     def plot_mesh(self, mesh_path:str="mesh", ipf:str="x", figure_x:float=10) -> None:
         """
@@ -214,6 +272,13 @@ class Interface:
         """
         if not self.__controller__.has_meshed:
             raise ValueError("The EBSD mesh has not been generated yet!")
+
+    def __check_grips__(self) -> None:
+        """
+        Checks that the grips have been added
+        """
+        if None in self.__controller__.grip_ids:
+            raise ValueError("The grips have not been added yet!")
 
     def __print__(self, message:str, add_index:bool=True, sub_index:bool=False) -> None:
         """

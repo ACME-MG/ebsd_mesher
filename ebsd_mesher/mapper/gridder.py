@@ -11,8 +11,7 @@ from copy import deepcopy
 from ebsd_mesher.mapper.grain import Grain
 
 # Special element IDs
-VOID_PIXEL_ID  = 100000 # large number
-NO_ORIENTATION = [0, 0, 0] # for void
+VOID_PIXEL_ID = 100000 # large number
 
 def get_void_pixel_grid(x_cells:list, y_cells:list) -> list:
     """
@@ -192,47 +191,3 @@ def get_centroids(pixel_grid:list) -> dict:
         y_mean = np.average(pixel_dict[grain_id]["y"])
         centroid_dict[grain_id] = (x_mean, y_mean)
     return centroid_dict
-
-def remap_grains(pixel_grid:list, grain_map:dict) -> tuple:
-    """
-    Renumbers the grain IDs
-    
-    Parameters:
-    * `pixel_grid`: A grid of pixels
-    * `grain_map`:  A mapping of the grains to the average orientations
-    
-    Returns the new pixel grid, grain map, and mapping from the old IDs to new IDs
-    """
-
-    # Get list of old IDs
-    flattened = [pixel for pixel_list in pixel_grid for pixel in pixel_list]
-    old_ids = list(set(flattened))
-    for excluded_id in [VOID_PIXEL_ID]:
-        if excluded_id in old_ids:
-            old_ids.remove(excluded_id)
-    old_ids.sort()
-
-    # Map old IDs to new IDs
-    remap_dict = {}
-    for i in range(len(old_ids)):
-        remap_dict[old_ids[i]] = i + 1
-    
-    # Create new pixel grid
-    new_pixel_grid = get_void_pixel_grid(len(pixel_grid[0]), len(pixel_grid))
-    for row in range(len(pixel_grid)):
-        for col in range(len(pixel_grid[0])):
-            if pixel_grid[row][col] in [VOID_PIXEL_ID]:
-                new_pixel_grid[row][col] = pixel_grid[row][col]
-            else:
-                new_id = remap_dict[pixel_grid[row][col]]
-                new_pixel_grid[row][col] = new_id
-    
-    # Create new grain map
-    new_grain_map = {}
-    for old_id in old_ids:
-        new_id = remap_dict[old_id]
-        new_grain_map[new_id] = grain_map[old_id]
-
-    # Return new pixel grid and grain map
-    return new_pixel_grid, new_grain_map, remap_dict
-
