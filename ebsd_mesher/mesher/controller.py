@@ -300,7 +300,7 @@ class Controller:
         * `ipf`:       The IPF colour ("x", "y", "z")
         * `figure_x`:  The initial horizontal size of the figures
         """
-        mesh_plotter = MeshPlotter(self.exodus_path, self.pixel_grid, self.grain_map, self.step_size, figure_x)
+        mesh_plotter = MeshPlotter(self.exodus_path, self.grain_map, figure_x)
         mesh_plotter.plot_mesh(self.spn_to_exo, ipf)
         mesh_path = get_file_path_exists(mesh_path, "png")
         save_plot(mesh_path)

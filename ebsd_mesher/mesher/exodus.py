@@ -93,7 +93,7 @@ def get_exodus_dimension(exodus_path:str, direction:str="z") -> float:
     Returns the dimension
     """
     ds = nc.Dataset(exodus_path, mode="r")
-    dimension = ds.variables[f"coord{direction}"][:]
+    dimension = max(ds.variables[f"coord{direction}"][:])
     ds.close()
     return dimension
 

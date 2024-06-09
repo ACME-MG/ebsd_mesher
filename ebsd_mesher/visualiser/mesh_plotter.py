@@ -12,19 +12,18 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from ebsd_mesher.mapper.gridder import VOID_PIXEL_ID
 from ebsd_mesher.maths.ipf_cubic import euler_to_rgb
+from ebsd_mesher.mesher.exodus import get_exodus_dimension
 
 # Mesh Plotter class
 class MeshPlotter:
 
-    def __init__(self, exodus_path:str, pixel_grid:list, grain_map:dict, step_size:float, figure_x:float):
+    def __init__(self, exodus_path:str, grain_map:dict, figure_x:float):
         """
         Constructor for the mesh plotter
 
         Parameters:
         * `exodus_path`: The path to the mesh file
-        * `pixel_grid`:  The grid of pixels
         * `grain_map`:   The dictionary of grain orientations
-        * `step_size`:   The step size
         * `figure_x`:    The initial horizontal size of the figures
         """
 
@@ -33,8 +32,8 @@ class MeshPlotter:
         self.grain_map = grain_map
         
         # Initialise plot
-        x_max = len(pixel_grid[0])*step_size
-        y_max = len(pixel_grid)*step_size
+        x_max = get_exodus_dimension(exodus_path, "x")
+        y_max = get_exodus_dimension(exodus_path, "y")
         self.figure, self.axis = plt.subplots(figsize=(figure_x, y_max/x_max*figure_x))
         plt.xlim(0, x_max)
         plt.ylim(0, y_max)
