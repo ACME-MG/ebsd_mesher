@@ -27,7 +27,7 @@ itf.plot_ebsd(
 )
 
 # Mesh the EBSD map and plot
-itf.mesh("~/cubit/psculpt.exe", z_voxels=3)
+itf.mesh("~/cubit/psculpt.exe", z_voxels=1)
 itf.plot_mesh(
     ipf      = "x",
     figure_x = 20
