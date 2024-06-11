@@ -220,6 +220,14 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.mesh(psculpt_path, z_voxels, num_processors)
 
+    def export_stats(self) -> None:
+        """
+        Exports the orientations and areas of each grain
+        """
+        self.__print__("Exporting the statistics from the mesh")
+        self.__check_mesh__()
+        self.__controller__.export_stats()
+
     def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
         """
         Fixes the interface between the grip and the microstructure

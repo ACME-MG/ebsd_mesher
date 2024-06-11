@@ -38,7 +38,7 @@ class Controller:
         self.spn_path     = f"{output_dir}/voxels.spn"
         self.exodus_path  = f"{output_dir}/mesh.e"
         self.map_path     = f"{output_dir}/grain_map.csv"
-        self.ori_path     = f"{output_dir}/orientations.csv"
+        self.stats_path   = f"{output_dir}/grain_stats.csv"
         self.summary_path = f"{output_dir}/summary.csv"
         self.has_meshed   = False
         self.grip_ids     = [None, None] # left, right
@@ -252,17 +252,31 @@ class Controller:
         }
         dict_to_csv(map_dict, self.map_path)
 
-        # Save orientations
-        ori_dict = {"phi_1": [], "Phi": [], "phi_2": []}
+    def export_stats(self) -> None:
+        """
+        Exports the orientations and areas of each grain
+        """
+        
+        # Initialise
         exo_to_spn = dict(zip(self.spn_to_exo.values(), self.spn_to_exo.keys()))
+        stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "size": []}
+        
+        # Iterate through each grain
         for exo_id in exo_to_spn.keys():
-            if exo_to_spn[exo_id] in [VOID_PIXEL_ID]:
+            
+            # Ignore voids and grips
+            if exo_to_spn[exo_id] in [VOID_PIXEL_ID]+self.grip_ids:
                 continue
+            
+            # Store statistics
             phi_1, Phi, phi_2 = self.grain_map[exo_to_spn[exo_id]].get_orientation()
-            ori_dict["phi_1"].append(deg_to_rad(phi_1))
-            ori_dict["Phi"].append(deg_to_rad(Phi))
-            ori_dict["phi_2"].append(deg_to_rad(phi_2))
-        dict_to_csv(ori_dict, self.ori_path, add_header=False)
+            stats_dict["phi_1"].append(deg_to_rad(phi_1))
+            stats_dict["Phi"].append(deg_to_rad(Phi))
+            stats_dict["phi_2"].append(deg_to_rad(phi_2))
+            stats_dict["size"].append(self.grain_map[exo_to_spn[exo_id]].get_size())
+        
+        # Save statistics
+        dict_to_csv(stats_dict, self.stats_path, add_header=False)
 
     def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
         """
