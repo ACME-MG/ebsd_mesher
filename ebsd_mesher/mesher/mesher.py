@@ -1,6 +1,6 @@
 """
  Title:         Mesher
- Description:   For converting the pixels into a mesh
+ Description:   For converting the element grid into a mesh
  Author:        Janzen Choi
 
 """
@@ -41,7 +41,7 @@ BEGIN SCULPT
 END SCULPT
 """
 
-def coarse_mesh(psculpt_path:str, thickness:int, num_processors:int, pixel_grid:list,
+def coarse_mesh(psculpt_path:str, thickness:int, num_processors:int, element_grid:list,
                 step_size:float, input_path:str, spn_path:str, exodus_path:str) -> None:
     """
     Generates a mesh based on an SPN file
@@ -50,8 +50,8 @@ def coarse_mesh(psculpt_path:str, thickness:int, num_processors:int, pixel_grid:
     * `psculpt_path`:   The path to PSculpt 
     * `thickness`:      The thickness of the mesh (in voxels)
     * `num_processors`: The number of processors to use to create the mesh
-    * `pixel_grid`:     The grid of pixels
-    * `step_size`:      The size that each pixel represents
+    * `element_grid`:   The grid of elements
+    * `step_size`:      The size of the elements
     * `input_path`:     The path to the input file
     * `spn_path`:       The path to the spn file
     * `exodus_path`:    The path to the mesh file
@@ -59,16 +59,16 @@ def coarse_mesh(psculpt_path:str, thickness:int, num_processors:int, pixel_grid:
 
     # Write SPN file (x = gauge, y = height, z = thickness)
     with open(spn_path, "w+") as fh:
-        for i in range(len(pixel_grid[0])):  # x
-            for j in range(len(pixel_grid)): # y
+        for i in range(len(element_grid[0])):  # x
+            for j in range(len(element_grid)): # y
                 for _ in range(thickness):   # z
-                    fh.write(f"{pixel_grid[j][i]} ")
+                    fh.write(f"{element_grid[j][i].get_grain_id()} ")
 
     # Create input file
     with open(input_path, "w+", newline="") as fh:
         fh.write(INPUT_FILE_CONTENT.format(
-            x_cells     = len(pixel_grid[0]),
-            y_cells     = len(pixel_grid),
+            x_cells     = len(element_grid[0]),
+            y_cells     = len(element_grid),
             z_cells     = thickness,
             step_size   = step_size,
             spn_file    = spn_path,

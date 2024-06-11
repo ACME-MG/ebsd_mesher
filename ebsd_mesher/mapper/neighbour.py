@@ -5,35 +5,35 @@
 
 """
 
-def get_neighbour_dict(pixel_grid:list) -> dict:
+def get_neighbour_dict(element_grid:list) -> dict:
     """
     Gets neighbouring grain information;
     does not repeat (if a->b then b-/>a)
 
     Parameters:
-    * `pixel_grid`: A grid of pixels
+    * `element_grid`: A grid of elements
 
     Returns the dictionary of grain neighbours
     """
 
     # Initialise
-    x_size = len(pixel_grid[0])
-    y_size = len(pixel_grid)
+    x_size = len(element_grid[0])
+    y_size = len(element_grid)
     neighbour_dict = {}
 
-    # Iterate through grid of pixels
+    # Iterate through grid of elements
     for row in range(y_size):
         for col in range(x_size):
 
             # Initialise grain information if uninitialised
-            grain_id = pixel_grid[row][col]
+            grain_id = element_grid[row][col].get_grain_id()
             if not grain_id in neighbour_dict.keys():
                 neighbour_dict[grain_id] = []
 
             # Identify neighbouring grains
             neighbours = get_neighbours(col, row, x_size, y_size)
             for n in neighbours:
-                n_id = pixel_grid[n[1]][n[0]]
+                n_id = element_grid[n[1]][n[0]]
                 if (grain_id != n_id and not n_id in neighbour_dict[grain_id] and
                     (not n_id in neighbour_dict.keys() or not grain_id in neighbour_dict[n_id])):
                     neighbour_dict[grain_id].append(n_id)
@@ -43,7 +43,7 @@ def get_neighbour_dict(pixel_grid:list) -> dict:
 
 def get_neighbours(x:float, y:float, x_size:int, y_size:int) -> list:
     """
-    Gets the neighbouring indices of a pixel
+    Gets the neighbouring indices of a element
     
     Parameters:
     * `x`:      The x coordinate
@@ -61,13 +61,13 @@ def get_neighbours(x:float, y:float, x_size:int, y_size:int) -> list:
     ]
     return neighbours
 
-def get_common_neighbours(pixel_grid:list, x:float, y:float, x_size:int, y_size:int) -> list:
+def get_common_neighbours(element_grid:list, x:float, y:float, x_size:int, y_size:int) -> list:
     """
-    Gets the neighbouring indices of a pixel that have the
-    same values in the pixel grid
+    Gets the neighbouring indices of a element that have the
+    same values in the element grid
     
     Parameters:
-    * `pixel_grid`: A list of pixels
+    * `element_grid`: A list of elements
     * `x`:          The x coordinate
     * `y`:          The y coordinate
     * `x_size`:     The maximum x value 
@@ -75,18 +75,18 @@ def get_common_neighbours(pixel_grid:list, x:float, y:float, x_size:int, y_size:
     
     Returns a list of the common neighbouring coordinates 
     """
-    current_value = pixel_grid[y][x]
+    current_value = element_grid[y][x].get_grain_id()
     neighbours = get_neighbours(x, y, x_size, y_size)
     common_neighbours = []
     for neighbour in neighbours:
-        neighbour_value = pixel_grid[neighbour[1]][neighbour[0]]
+        neighbour_value = element_grid[neighbour[1]][neighbour[0]].get_grain_id()
         if neighbour_value == current_value:
             common_neighbours.append(neighbour)
     return common_neighbours
 
 def get_all_neighbours(x_list:list, y_list:list, x_size:int, y_size:int):
     """
-    Gets the neighbouring indices of a group of pixels
+    Gets the neighbouring indices of a group of elements
     
     Parameters:
     * `x_list`: The list of x coordinates

@@ -10,26 +10,26 @@ import pyvista as pv
 import itertools
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from ebsd_mesher.mapper.gridder import VOID_PIXEL_ID
+from ebsd_mesher.mapper.gridder import VOID_ELEMENT_ID
 from ebsd_mesher.maths.ipf_cubic import euler_to_rgb
 from ebsd_mesher.mesher.exodus import get_exodus_dimension
 
 # Mesh Plotter class
 class MeshPlotter:
 
-    def __init__(self, exodus_path:str, grain_map:dict, figure_x:float):
+    def __init__(self, exodus_path:str, mesh_elements:list, figure_x:float):
         """
         Constructor for the mesh plotter
 
         Parameters:
-        * `exodus_path`: The path to the mesh file
-        * `grain_map`:   The dictionary of grain orientations
-        * `figure_x`:    The initial horizontal size of the figures
+        * `exodus_path`:   The path to the mesh file
+        * `mesh_elements`: The list of element objects
+        * `figure_x`:      The initial horizontal size of the figures
         """
 
         # Initialise internal variables
         self.exodus_path = exodus_path
-        self.grain_map = grain_map
+        self.mesh_elements = mesh_elements
         
         # Initialise plot
         x_max = get_exodus_dimension(exodus_path, "x")
@@ -39,39 +39,38 @@ class MeshPlotter:
         plt.ylim(0, y_max)
         self.axis.invert_yaxis()
 
-    def plot_mesh(self, spn_to_exo:dict, ipf:str="x") -> None:
+    def plot_mesh(self, ipf:str="x") -> None:
         """
         Creates a plot of the mesh
 
         Parameters:
-        * `spn_to_exo`: Dictionary that maps the EBSD map to the mesh
-        * `ipf`:        The IPF direction to plot the mesh
+        * `ipf`: The IPF direction to plot the mesh
         """
 
-        # Map mesh_id to ebsd_id
-        exo_to_spn = dict(zip(spn_to_exo.values(), spn_to_exo.keys()))
-
-        # Read mesh and iterate through grains
+        # Initialise
+        element_id = 0
         mesh_info = pv.read(self.exodus_path)[0]
-        for i, grain in enumerate(mesh_info):
 
-            # Get grain ID and ignore void
-            ebsd_id = exo_to_spn[i+1]
-            if ebsd_id in [VOID_PIXEL_ID]:
-                continue
-
-            # Get IPF colour
-            euler = self.grain_map[ebsd_id].get_orientation()
-            ipf_colour = euler_to_rgb(*euler, ipf=ipf)
-            ipf_colour = [ipf/255 for ipf in ipf_colour]
-
-            # Plot cells for the grain
+        # Iterate and plot each grain
+        for grain in mesh_info:
             for cell_id in range(grain.n_cells):
+                
+                # Get cell coordinates and ignore if not surface
                 cell_coordinates = get_cell_coordinates(grain, cell_id)
                 if cell_coordinates == []:
-                    continue # only consider surface cells
+                    continue
+                
+                # Get element and increment
+                element = self.mesh_elements[element_id]
+                element_id += 1
+                
+                # Get IPF colour
+                orientation = element.get_orientation(degrees=True)
+                colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
+                
+                # Plot the cell
                 cell_coordinates = order_vertices(cell_coordinates)
-                polygon = patches.Polygon(cell_coordinates, closed=True, fill=True, facecolor=ipf_colour, edgecolor="black")
+                polygon = patches.Polygon(cell_coordinates, closed=True, fill=True, facecolor=colour, edgecolor="black")
                 self.axis.add_patch(polygon)
 
 def get_cell_coordinates(grain:pv.core.pointset.UnstructuredGrid, cell_id:int) -> list:

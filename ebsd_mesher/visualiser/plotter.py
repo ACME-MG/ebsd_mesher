@@ -9,15 +9,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def get_boundary(row:int, col:int, pixel_grid:list, step_size:float) -> tuple:
+def get_boundary(row:int, col:int, element_grid:list, step_size:float) -> tuple:
     """
     Gets coordinates for drawing the boundaries
 
     Parameters:
-    * `row`:        The row of the pixel
-    * `col`:        The column of the pixel
-    * `pixel_grid`: The grid of pixels
-    * `step_size`:  The step size
+    * `row`:          The row of the element
+    * `col`:          The column of the element
+    * `element_grid`: The grid of elements
+    * `step_size`:    The step size
 
     Returns the x and y lists
     """
@@ -28,22 +28,22 @@ def get_boundary(row:int, col:int, pixel_grid:list, step_size:float) -> tuple:
     y = get_coordinate(row, step_size)
     
     # Check to add boundary on the right
-    if col+1 >= len(pixel_grid[0]) or pixel_grid[row][col] != pixel_grid[row][col+1]:
+    if col+1 >= len(element_grid[0]) or element_grid[row][col].get_grain_id() != element_grid[row][col+1].get_grain_id():
         x_list += [x + step_size/2]*2 + [np.NaN]
         y_list += [y - step_size/2, y + step_size/2] + [np.NaN]
 
     # Check to add boundary on the left
-    if col-1 < 0 or pixel_grid[row][col] != pixel_grid[row][col-1]:
+    if col-1 < 0 or element_grid[row][col].get_grain_id() != element_grid[row][col-1].get_grain_id():
         x_list += [x - step_size/2]*2 + [np.NaN]
         y_list += [y - step_size/2, y + step_size/2] + [np.NaN]
 
     # Check to add boundary on the top
-    if row+1 >= len(pixel_grid) or pixel_grid[row][col] != pixel_grid[row+1][col]:
+    if row+1 >= len(element_grid) or element_grid[row][col].get_grain_id() != element_grid[row+1][col].get_grain_id():
         x_list += [x - step_size/2, x + step_size/2] + [np.NaN]
         y_list += [y + step_size/2]*2 + [np.NaN]
 
     # Check to add boundary on the bottom
-    if row-1 < 0 or pixel_grid[row][col] != pixel_grid[row-1][col]:
+    if row-1 < 0 or element_grid[row][col].get_grain_id() != element_grid[row-1][col].get_grain_id():
         x_list += [x - step_size/2, x + step_size/2] + [np.NaN]
         y_list += [y - step_size/2]*2 + [np.NaN]
 
@@ -62,20 +62,20 @@ def get_coordinate(index:int, step_size:float) -> float:
     """
     return index*step_size + step_size/2
 
-def get_positions(grain_id:int, pixel_grid:list) -> tuple:
+def get_positions(grain_id:int, element_grid:list) -> tuple:
     """
-    Gets the positions of a grain in a pixel grid
+    Gets the positions of a grain in a element grid
 
     Parameters:
-    * `grain_id`:   The ID of the grain
-    * `pixel_grid`: The grid of pixels
+    * `grain_id`:     The ID of the grain
+    * `element_grid`: The grid of elements
 
     Returns the column and row positions
     """
     col_list, row_list = [], []
-    for row in range(len(pixel_grid)):
-        for col in range(len(pixel_grid[row])):
-            if grain_id == pixel_grid[row][col]:
+    for row in range(len(element_grid)):
+        for col in range(len(element_grid[row])):
+            if grain_id == element_grid[row][col].get_grain_id():
                 col_list.append(col)
                 row_list.append(row)
     return col_list, row_list

@@ -14,26 +14,24 @@ from ebsd_mesher.visualiser.plotter import get_coordinate, get_boundary
 # EBSDPlotter class
 class EBSDPlotter:
     
-    def __init__(self, pixel_grid:list, grain_map:dict, step_size:float, figure_x:float=10):
+    def __init__(self, element_grid:list, step_size:float, figure_x:float=10):
         """
         Constructor for the plotter class
         
         Parameters:
-        * `pixel_grid`: A grid of pixels
-        * `grain_map`:  A mapping of the grains to the average orientations
-        * `step_size`:  The step size of the EBSD map
-        * `figure_x`:   Size of the horizontal axis of the figure (in inches)
+        * `element_grid`: A grid of elements
+        * `step_size`:    The step size of the EBSD map
+        * `figure_x`:     Size of the horizontal axis of the figure (in inches)
         """
         
         # Initialise internal variables
-        self.pixel_grid = pixel_grid
-        self.grain_map = grain_map
+        self.element_grid = element_grid
         self.step_size = step_size
         self.figure_x = figure_x
         
         # Initialise plot
-        x_max = len(pixel_grid[0])*self.step_size
-        y_max = len(pixel_grid)*self.step_size
+        x_max = len(element_grid[0])*self.step_size
+        y_max = len(element_grid)*self.step_size
         self.figure, self.axis = plt.subplots(figsize=(figure_x, y_max/x_max*figure_x))
         plt.xlim(0, x_max)
         plt.ylim(0, y_max)
@@ -47,41 +45,28 @@ class EBSDPlotter:
         Plots the EBSD map using Matplotlib
         
         Parameters:
-        * `pixel_grid`: A grid of pixels
-        * `grain_map`:  A mapping of the grains to the average orientations
-        * `step_size`:  The step size of the EBSD map
-        * `ipf`:        The IPF direction
+        * `ipf`: The IPF direction
         """
-        
-        # Create colour map
-        colour_map = {}
-        for grain_id in self.grain_map.keys():
-            orientation = self.grain_map[grain_id].get_orientation()
-            colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
-            colour_map[grain_id] = colour
-        
-        # Prepare pixel data
         x_list, y_list, colour_list = [], [], []
-        for row in range(len(self.pixel_grid)):
-            for col in range(len(self.pixel_grid[row])):
-                if self.pixel_grid[row][col] in colour_map.keys():
-                    x_list.append(get_coordinate(col, self.step_size))
-                    y_list.append(get_coordinate(row, self.step_size))
-                    colour_list.append(colour_map[self.pixel_grid[row][col]])
-
-        # Plot
+        for row in range(len(self.element_grid)):
+            for col in range(len(self.element_grid[row])):
+                x_list.append(get_coordinate(col, self.step_size))
+                y_list.append(get_coordinate(row, self.step_size))
+                orientation = self.element_grid[row][col].get_orientation(degrees=True)
+                colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
+                colour_list.append(colour)
         plt.scatter(x_list, y_list, c=colour_list, s=self.square_size**2, marker="s")
 
     def plot_border(self) -> None:
         """
-        Draws an outline at the outermost pixels;
+        Draws an outline at the outermost elements;
         for checking that the whole microstructre is shown
         """
         x_list, y_list, colour_list = [], [], []
-        for row in range(len(self.pixel_grid)):
-            for col in range(len(self.pixel_grid[row])):
-                if (col == 0 or col == len(self.pixel_grid[row])-1 or
-                    row == 0 or row == len(self.pixel_grid)-1):
+        for row in range(len(self.element_grid)):
+            for col in range(len(self.element_grid[row])):
+                if (col == 0 or col == len(self.element_grid[row])-1 or
+                    row == 0 or row == len(self.element_grid)-1):
                         x_list.append(get_coordinate(col, self.step_size))
                         y_list.append(get_coordinate(row, self.step_size))
                         colour_list.append((0,0,0))
@@ -94,7 +79,7 @@ class EBSDPlotter:
         Parameters:
         * `id_list`: List of grain IDs to add centroids to
         """
-        centroid_dict = get_centroids(self.pixel_grid)
+        centroid_dict = get_centroids(self.element_grid)
         for grain_id in centroid_dict.keys():
             if id_list != None and not grain_id in id_list:
                 continue
@@ -111,10 +96,10 @@ class EBSDPlotter:
         * `id_list`: List of grain IDs to draw boundaries around
         """
         x_list, y_list = [], []
-        for row in range(len(self.pixel_grid)):
-            for col in range(len(self.pixel_grid[row])):
-                if id_list == None or self.pixel_grid[row][col] in id_list:
-                    x_boundary, y_boundary = get_boundary(row, col, self.pixel_grid, self.step_size)
+        for row in range(len(self.element_grid)):
+            for col in range(len(self.element_grid[row])):
+                if id_list == None or self.element_grid[row][col].get_grain_id() in id_list:
+                    x_boundary, y_boundary = get_boundary(row, col, self.element_grid, self.step_size)
                     x_list += x_boundary
                     y_list += y_boundary
         plt.plot(x_list, y_list, **settings)

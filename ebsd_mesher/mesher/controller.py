@@ -6,16 +6,15 @@
 """
 
 # Libraries
-import math
+import math, numpy as np
 from copy import deepcopy
 from ebsd_mesher.visualiser.ebsd_plotter import EBSDPlotter
 from ebsd_mesher.visualiser.mesh_plotter import MeshPlotter
-from ebsd_mesher.mapper.gridder import read_pixels, get_grain_ids, get_void_pixel_grid, VOID_PIXEL_ID
-from ebsd_mesher.mapper.grain import Grain
-from ebsd_mesher.mapper.improver import clean_pixel_grid, smoothen_edges, pad_edges, remove_small_grains
-from ebsd_mesher.maths.orientation import deg_to_rad
+from ebsd_mesher.mapper.gridder import read_elements, get_grain_ids, get_void_element, get_void_element_grid
+from ebsd_mesher.mapper.gridder import get_areas, VOID_ELEMENT_ID
+from ebsd_mesher.mapper.improver import clean_element_grid, smoothen_edges, pad_edges, remove_small_grains
 from ebsd_mesher.mesher.exodus import map_spn_to_exo, renumber_grains, get_exodus_dimension, scale_exodus_mesh
-from ebsd_mesher.mesher.exodus import straighten_interface, scale_gripped_microstructure
+from ebsd_mesher.mesher.exodus import get_element_info, straighten_interface, scale_gripped_microstructure
 from ebsd_mesher.mesher.mesher import coarse_mesh
 from ebsd_mesher.helper.io import get_file_path_exists, dict_to_csv
 from ebsd_mesher.visualiser.plotter import save_plot
@@ -30,19 +29,16 @@ class Controller:
         Parameters:
         * `output_dir`: Path to the output directory
         """
-        self.headers      = []
-        self.pixel_grid   = None
-        self.grain_map    = None
-        self.step_size    = None
-        self.input_path   = f"{output_dir}/input.i"
-        self.spn_path     = f"{output_dir}/voxels.spn"
-        self.exodus_path  = f"{output_dir}/mesh.e"
-        self.map_path     = f"{output_dir}/grain_map.csv"
-        self.stats_path   = f"{output_dir}/grain_stats.csv"
-        self.summary_path = f"{output_dir}/summary.csv"
-        self.has_meshed   = False
-        self.grip_ids     = [None, None] # left, right
-        self.spn_to_exo   = None
+        self.headers       = []
+        self.element_grid  = None
+        self.step_size     = None
+        self.output_dir    = output_dir
+        self.input_path    = f"{output_dir}/input.i"
+        self.spn_path      = f"{output_dir}/voxels.spn"
+        self.exodus_path   = f"{output_dir}/mesh.e"
+        self.mesh_elements = None
+        self.grip_ids      = [None, None] # left, right
+        self.spn_to_exo    = None
 
     def define_headers(self, x:str, y:str, grain_id:str, phi_1:str, Phi:str, phi_2:str) -> None:
         """
@@ -58,17 +54,16 @@ class Controller:
         """
         self.headers = [x, y, grain_id, phi_1, Phi, phi_2]
 
-    def import_ebsd(self, ebsd_path:str, step_size:float) -> None:
+    def import_ebsd(self, ebsd_path:str, step_size:float, degrees:bool=True) -> None:
         """
         Reads in an EBSD map
 
         Parameters:
         * `ebsd_path`: Path to the EBSD file as a CSV file
         * `step_size`: Step size between coordinates
+        * `degrees`:   Whether to the orientations are in degrees
         """
-        pixel_grid, grain_map = read_pixels(ebsd_path, step_size, self.headers)
-        self.pixel_grid = pixel_grid
-        self.grain_map = grain_map
+        self.element_grid = read_elements(ebsd_path, step_size, self.headers, degrees)
         self.step_size = step_size
 
     def redefine_domain(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
@@ -89,19 +84,19 @@ class Controller:
         y_max = round(y_max / self.step_size)
 
         # Get new and original lengths
-        x_size = len(self.pixel_grid[0])
-        y_size = len(self.pixel_grid)
+        x_size = len(self.element_grid[0])
+        y_size = len(self.element_grid)
         new_x_size = x_max - x_min
         new_y_size = y_max - y_min
 
-        # Create new pixel grid and replace
-        new_pixel_grid = get_void_pixel_grid(new_x_size, new_y_size)
+        # Create new element grid and replace
+        new_element_grid = get_void_element_grid(new_x_size, new_y_size)
         for row in range(y_size):
             for col in range(x_size):
                 new_col, new_row = abs(col-x_min), abs(row-y_min)
                 if new_col >= 0 and new_row >= 0 and new_col < new_x_size and new_row < new_y_size:
-                    new_pixel_grid[new_row][new_col] = self.pixel_grid[row][col]
-        self.pixel_grid = new_pixel_grid
+                    new_element_grid[new_row][new_col] = deepcopy(self.element_grid[row][col])
+        self.element_grid = new_element_grid
 
     def decrease_resolution(self, factor:int) -> None:
         """
@@ -111,13 +106,13 @@ class Controller:
         * `factor`: The factor of the resolution decrease
         """
         self.step_size *= factor
-        new_x_size = math.ceil(len(self.pixel_grid[0]) / factor)
-        new_y_size = math.ceil(len(self.pixel_grid) / factor)
-        new_pixel_grid = get_void_pixel_grid(new_x_size, new_y_size)
+        new_x_size = math.ceil(len(self.element_grid[0]) / factor)
+        new_y_size = math.ceil(len(self.element_grid) / factor)
+        new_element_grid = get_void_element_grid(new_x_size, new_y_size)
         for row in range(new_y_size):
             for col in range(new_x_size):
-                new_pixel_grid[row][col] = self.pixel_grid[row * factor][col * factor]
-        self.pixel_grid = new_pixel_grid
+                new_element_grid[row][col] = deepcopy(self.element_grid[row*factor][col*factor])
+        self.element_grid = new_element_grid
 
     def clean(self, iterations:int=1) -> None:
         """
@@ -127,7 +122,7 @@ class Controller:
         * `iterations`: The number of times to conduct the cleaning
         """
         for _ in range(iterations):
-            self.pixel_grid = clean_pixel_grid(self.pixel_grid)
+            self.element_grid = clean_element_grid(self.element_grid)
 
     def smooth(self, iterations:int=1) -> None:
         """
@@ -137,7 +132,7 @@ class Controller:
         * `iterations`: The number of times to conduct the smoothing
         """
         for _ in range(iterations):
-            self.pixel_grid = smoothen_edges(self.pixel_grid)
+            self.element_grid = smoothen_edges(self.element_grid)
     
     def fill(self, iterations:int=1) -> None:
         """
@@ -147,7 +142,7 @@ class Controller:
         * `iterations`: The number of times to conduct the filling
         """
         for _ in range(iterations):
-            self.pixel_grid = pad_edges(self.pixel_grid)
+            self.element_grid = pad_edges(self.element_grid)
     
     def remove_grains(self, threshold:float) -> None:
         """
@@ -157,7 +152,7 @@ class Controller:
         * `threshold`: The threshold grain area to remove the grains
         """
         threshold /= self.step_size**2
-        self.pixel_grid = remove_small_grains(self.pixel_grid, threshold)
+        self.element_grid = remove_small_grains(self.element_grid, threshold)
 
     def add_grips(self, num_cells:int) -> None:
         """
@@ -168,23 +163,19 @@ class Controller:
         """
         
         # Create grain IDs for the grips
-        grain_ids = get_grain_ids(self.pixel_grid)
-        l_grip_id = max(grain_ids+[VOID_PIXEL_ID])+1
-        r_grip_id = max(grain_ids+[VOID_PIXEL_ID])+2
+        grain_ids = get_grain_ids(self.element_grid)
+        l_grip_id = max(grain_ids+[VOID_ELEMENT_ID])+1
+        r_grip_id = max(grain_ids+[VOID_ELEMENT_ID])+2
         self.grip_ids[0] = l_grip_id
         self.grip_ids[1] = r_grip_id
 
-        # Add grip IDs to pixel grid
-        new_pixel_grid = deepcopy(self.pixel_grid)
-        for row in range(len(new_pixel_grid)):
-            new_pixel_grid[row] = [l_grip_id]*num_cells + new_pixel_grid[row] + [r_grip_id]*num_cells
-        self.pixel_grid = new_pixel_grid
-
-        # Add orientation to grips
-        l_grip_grain = Grain(0, 0, 0, num_cells*len(new_pixel_grid))
-        r_grip_grain = Grain(0, 0, 0, num_cells*len(new_pixel_grid))
-        self.grain_map[l_grip_id] = l_grip_grain
-        self.grain_map[r_grip_id] = r_grip_grain
+        # Add grip IDs to element grid
+        new_element_grid = deepcopy(self.element_grid)
+        for row in range(len(new_element_grid)):
+            l_elements = [get_void_element(l_grip_id) for _ in range(num_cells)]
+            r_elements = [get_void_element(r_grip_id) for _ in range(num_cells)]
+            new_element_grid[row] = l_elements + new_element_grid[row] + r_elements
+        self.element_grid = new_element_grid
 
     def plot_ebsd(self, ebsd_path:str, ipf:str="x", figure_x:float=10,
                   grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
@@ -208,11 +199,11 @@ class Controller:
         boundary_settings = boundary if isinstance(boundary, dict) else {"linewidth": 1, "color": "black"}
         
         # Plot EBSD map
-        plotter = EBSDPlotter(self.pixel_grid, self.grain_map, self.step_size, figure_x)
+        plotter = EBSDPlotter(self.element_grid, self.step_size, figure_x)
         plotter.plot_ebsd(ipf)
 
         # Add IDs and boundaries if specified
-        id_list = get_grain_ids(self.pixel_grid) if id_list == None else id_list
+        id_list = get_grain_ids(self.element_grid) if id_list == None else id_list
         if (isinstance(grain_id, bool) and grain_id) or isinstance(grain_id, dict):
             plotter.plot_ids(id_list, settings=id_settings)
         if (isinstance(boundary, bool) and boundary) or isinstance(boundary, dict):
@@ -222,27 +213,29 @@ class Controller:
         ebsd_path = get_file_path_exists(ebsd_path, "png")
         save_plot(ebsd_path)
 
-    def mesh(self, psculpt_path:str, z_voxels:int, num_processors:int) -> None:
+    def mesh(self, psculpt_path:str, z_elements:int, num_processors:int) -> None:
         """
         Generates a mesh based on an SPN file
         
         Parameters:
         * `psculpt_path`:   The path to PSculpt 
-        * `z_voxels`:       The thickness of the mesh (in voxels) 
+        * `z_elements`:     The number of elements in the the mesh's thickness
         * `num_processors`: The number of processors to use to create the mesh
         """
 
         # Generate the mesh and renumber the meshed grains (ascending and consecutive)
         print()
-        self.has_meshed = True
-        coarse_mesh(psculpt_path, z_voxels, num_processors, self.pixel_grid,
+        coarse_mesh(psculpt_path, z_elements, num_processors, self.element_grid,
                     self.step_size, self.input_path, self.spn_path, self.exodus_path)
         print()
         renumber_grains(self.exodus_path)
 
         # Map the grains of the EBSD map to the mesh
-        spn_size = (len(self.pixel_grid[0]), len(self.pixel_grid), z_voxels)
+        spn_size = (len(self.element_grid[0]), len(self.element_grid), z_elements)
         self.spn_to_exo, confidence_list = map_spn_to_exo(self.exodus_path, self.spn_path, spn_size)
+
+        # Save element information
+        self.mesh_elements = get_element_info(self.exodus_path, self.element_grid, self.step_size)
 
         # Save the mapping
         map_dict = {
@@ -250,33 +243,69 @@ class Controller:
             "mesh_id":    list(self.spn_to_exo.values()),
             "confidence": confidence_list
         }
-        dict_to_csv(map_dict, self.map_path)
+        dict_to_csv(map_dict, f"{self.output_dir}/grain_map.csv")
 
-    def export_stats(self) -> None:
+    def export_grains(self, degrees:bool=True) -> None:
         """
         Exports the orientations and areas of each grain
+        
+        Parameters:
+        * `degrees`: Whether to save the orientations as degrees
         """
         
         # Initialise
         exo_to_spn = dict(zip(self.spn_to_exo.values(), self.spn_to_exo.keys()))
-        stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "size": []}
+        stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "area": []}
+        area_dict = get_areas(self.element_grid)
         
         # Iterate through each grain
         for exo_id in exo_to_spn.keys():
             
-            # Ignore voids and grips
-            if exo_to_spn[exo_id] in [VOID_PIXEL_ID]+self.grip_ids:
+            # Get grain ID and check if void
+            spn_id = exo_to_spn[exo_id]
+            if spn_id in [VOID_ELEMENT_ID]:
                 continue
+
+            # Get average orientation
+            phi_1_list, Phi_list, phi_2_list = [], [], []
+            for row in range(len(self.element_grid)):
+                for col in range(len(self.element_grid[row])):
+                    if spn_id == self.element_grid[row][col].get_grain_id():
+                        phi_1, Phi, phi_2 = self.element_grid[row][col].get_orientation(degrees)
+                        phi_1_list.append(phi_1)
+                        Phi_list.append(Phi)
+                        phi_2_list.append(phi_2)
             
             # Store statistics
-            phi_1, Phi, phi_2 = self.grain_map[exo_to_spn[exo_id]].get_orientation()
-            stats_dict["phi_1"].append(deg_to_rad(phi_1))
-            stats_dict["Phi"].append(deg_to_rad(Phi))
-            stats_dict["phi_2"].append(deg_to_rad(phi_2))
-            stats_dict["size"].append(self.grain_map[exo_to_spn[exo_id]].get_size())
+            stats_dict["phi_1"].append(np.average(phi_1_list))
+            stats_dict["Phi"].append(np.average(Phi_list))
+            stats_dict["phi_2"].append(np.average(phi_2_list))
+            stats_dict["area"].append(area_dict[spn_id])
         
         # Save statistics
-        dict_to_csv(stats_dict, self.stats_path, add_header=False)
+        dict_to_csv(stats_dict, f"{self.output_dir}/grain_stats.csv", add_header=False)
+
+    def export_elements(self, degrees:bool=True) -> None:
+        """
+        Exports the orientation and grain ID of each element
+        
+        Parameters:
+        * `degrees`: Whether to save the orientations as degrees
+        """
+        
+        # Initialise
+        stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "grain_id": []}
+        
+        # Iterate through ordered elements
+        for element in self.mesh_elements:
+            phi_1, Phi, phi_2 = element.get_orientation(degrees)
+            stats_dict["phi_1"].append(phi_1)
+            stats_dict["Phi"].append(Phi)
+            stats_dict["phi_2"].append(phi_2)
+            stats_dict["grain_id"].append(element.get_grain_id())
+        
+        # Save statistics
+        dict_to_csv(stats_dict, f"{self.output_dir}/element_stats.csv", add_header=False)
 
     def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
         """
@@ -314,7 +343,7 @@ class Controller:
         * `ipf`:       The IPF colour ("x", "y", "z")
         * `figure_x`:  The initial horizontal size of the figures
         """
-        mesh_plotter = MeshPlotter(self.exodus_path, self.grain_map, figure_x)
-        mesh_plotter.plot_mesh(self.spn_to_exo, ipf)
+        mesh_plotter = MeshPlotter(self.exodus_path, self.mesh_elements, figure_x)
+        mesh_plotter.plot_mesh(ipf)
         mesh_path = get_file_path_exists(mesh_path, "png")
         save_plot(mesh_path)

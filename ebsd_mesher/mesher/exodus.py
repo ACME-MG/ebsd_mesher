@@ -10,21 +10,21 @@ import math
 import pyvista as pv
 import netCDF4 as nc
 
-def map_spn_to_exo(exo_path:str, spn_path:str, spn_size:tuple) -> tuple:
+def map_spn_to_exo(exodus_path:str, spn_path:str, spn_size:tuple) -> tuple:
     """
     Gets the grain IDs of exodus grains from the SPN file
     
     Parameters:
-    * `exo_path`: The path to the exodus file
-    * `spn_path`: The path to the SPN file
-    * `spn_size`: The size of the SPN file as a tuple (x, y, z)
+    * `exodus_path`: The path to the exodus file
+    * `spn_path`:    The path to the SPN file
+    * `spn_size`:    The size of the SPN file as a tuple (x, y, z)
     
     Returns a mapping of the SPN to exodus IDs and the confidence of the mapping;
     the mapping is in the form of a dictionary with keys "exo_id", "confidence"
     """
 
     # Reads the contents of the exodus file
-    exo_grains = pv.read(exo_path)[0]
+    exo_grains = pv.read(exodus_path)[0]
     bounds = exo_grains.bounds
     exo_bounds = [{"min": bounds[2*i], "max": bounds[2*i+1], "range": bounds[2*i+1] - bounds[2*i]} for i in range(3)]
 
@@ -68,6 +68,38 @@ def map_spn_to_exo(exo_path:str, spn_path:str, spn_size:tuple) -> tuple:
 
     # Return
     return spn_to_exo, confidence_list
+
+def get_element_info(exodus_path:str, element_grid:list, step_size:float) -> list:
+    """
+    Gets a list of elements; the elements are ordered by the grains
+    then elements within the grains
+    
+    Parameters:
+    * `exodus_path`:  The path to the exodus file
+    * `element_grid`: The grid of elements
+    * `step_size`:    The size of each element
+
+    Returns an ordered list element objects
+    """
+    
+    # Read all the grains
+    mesh = pv.read(exodus_path)[0]
+    grain_list = [mesh[i] for i in range(mesh.n_blocks)]
+
+    # Read all the centroids of the elements for each grain
+    centroid_list = []
+    for grain in grain_list:
+        elements = grain.cell_centers().points
+        elements = [list(element) for element in elements]
+        centroid_list += list(elements)
+    
+    # Iterate through centroids and store elements
+    element_list = []
+    for centroid in centroid_list:
+        x_index = math.floor(centroid[0] / step_size)
+        y_index = math.floor(centroid[1] / step_size)
+        element_list.append(element_grid[y_index][x_index])
+    return element_list
 
 def renumber_grains(exodus_path:str) -> None:
     """
@@ -252,4 +284,3 @@ def scale_gripped_microstructure(exodus_path:str, l_grip_id:int, r_grip_id:int,
         else:
             nc_mesh.variables["coordx"][i] = scale_micro(x_coord)
     nc_mesh.close()
-

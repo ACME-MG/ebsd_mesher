@@ -67,40 +67,17 @@ class Interface:
         self.__print__("Defining headers for EBSD files")
         self.__controller__.define_headers(x, y, grain_id, phi_1, Phi, phi_2)
 
-    def import_ebsd(self, ebsd_path:str, step_size:float) -> None:
+    def import_ebsd(self, ebsd_path:str, step_size:float, degrees:bool=True) -> None:
         """
         Reads in an EBSD map
 
         Parameters:
         * `ebsd_path`: Path to the EBSD file as a CSV file
         * `step_size`: Step size between coordinates
+        * `degrees`:   Whether to the orientations are in degrees
         """
         self.__print__(f"Adding the EBSD map")
-        self.__controller__.import_ebsd(ebsd_path, step_size)
-
-    def get_dimensions(self) -> dict:
-        """
-        Returns the mesh dimensions as a dictionary
-        """
-        self.__print__("Retrieving the dimensions of the EBSD map")
-        self.__check_ebsd__()
-        x_size = len(self.__controller__.pixel_grid[0])*self.__controller__.step_size
-        y_size = len(self.__controller__.pixel_grid)*self.__controller__.step_size
-        return {"x": x_size, "y": y_size}
-
-    def add_unoriented(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
-        """
-        Adds a rectangle with no orientations
-        
-        Parameters:
-        * `x_min`: The lowest x value of the unoriented rectangle
-        * `x_max`: The highest x value of the unoriented rectangle
-        * `y_min`: The lowest y value of the unoriented rectangle
-        * `y_max`: The highest y value of the unoriented rectangle
-        """
-        self.__print__(f"Adding unoriented rectangle to the EBSD map")
-        self.__check_ebsd__()
-        self.__controller__.add_unoriented(x_min, x_max, y_min, y_max)
+        self.__controller__.import_ebsd(ebsd_path, step_size, degrees)
 
     def redefine_domain(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
         """
@@ -118,7 +95,7 @@ class Interface:
 
     def decrease_resolution(self, factor:int) -> None:
         """
-        Decreases the resolution of the pixellation;
+        Decreases the resolution of the pixellated EBSD map;
         define the factor as a fraction to increase the resolution
         
         Parameters:
@@ -198,8 +175,7 @@ class Interface:
                        define dictionary for custom settings
         * `boundary`:  Whether to include IDs in the EBSD maps;
                        define dictionary for custom settings
-        * `id_list`:   The IDs of the grains to plot the IDs and boundaries;
-                       IDs are the ones of the first grain map;
+        * `id_list`:   The IDs of the grains to plot the IDs and boundaries
                        if undefined, adds for all grains
         """
         self.__print__(f"Plotting the EBSD map")
@@ -207,26 +183,40 @@ class Interface:
         ebsd_path = self.__get_output__(ebsd_path)
         self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, grain_id, boundary, id_list)
 
-    def mesh(self, psculpt_path:str, z_voxels:int=1, num_processors:int=1) -> None:
+    def mesh(self, psculpt_path:str, z_elements:int=1, num_processors:int=1) -> None:
         """
         Generates a mesh based on an SPN file
         
         Parameters:
         * `psculpt_path`:   The path to PSculpt
-        * `z_voxels`:       The thickness of the mesh (in voxels)
+        * `z_elements`:     The number of elements in the the mesh's thickness
         * `num_processors`: The number of processors to use to create the mesh
         """
-        self.__print__("Generating a mesh of the EBSD map")
+        self.__print__(f"Generating a mesh of the EBSD map with a thickness of {z_elements} element(s)")
         self.__check_ebsd__()
-        self.__controller__.mesh(psculpt_path, z_voxels, num_processors)
+        self.__controller__.mesh(psculpt_path, z_elements, num_processors)
 
-    def export_stats(self) -> None:
+    def export_grains(self, degrees:bool=True) -> None:
         """
-        Exports the orientations and areas of each grain
+        Exports the orientation and area of each grain
+        
+        Parameters:
+        * `degrees`: Whether to save the orientations as degrees
         """
-        self.__print__("Exporting the statistics from the mesh")
+        self.__print__("Exporting the grain statistics from the mesh")
         self.__check_mesh__()
-        self.__controller__.export_stats()
+        self.__controller__.export_grains(degrees)
+
+    def export_elements(self, degrees:bool=True) -> None:
+        """
+        Exports the orientation and grain ID of each element
+        
+        Parameters:
+        * `degrees`: Whether to save the orientations as degrees
+        """
+        self.__print__("Exporting the element statistics from the mesh")
+        self.__check_mesh__()
+        self.__controller__.export_elements(degrees)
 
     def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
         """
@@ -271,14 +261,14 @@ class Interface:
         """
         Checks that the EBSD map has been imported in
         """
-        if self.__controller__.pixel_grid == None:
+        if self.__controller__.element_grid == None:
             raise ValueError("The EBSD map has not been imported yet!")
 
     def __check_mesh__(self) -> None:
         """
         Checks that the EBSD mesh has been generated
         """
-        if not self.__controller__.has_meshed:
+        if self.__controller__.mesh_elements == None:
             raise ValueError("The EBSD mesh has not been generated yet!")
 
     def __check_grips__(self) -> None:
