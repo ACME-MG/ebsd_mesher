@@ -9,6 +9,7 @@
 import math
 import pyvista as pv
 import netCDF4 as nc
+from ebsd_mesher.mapper.gridder import get_grain_positions
 
 def map_spn_to_exo(exodus_path:str, spn_path:str, spn_size:tuple) -> tuple:
     """
@@ -69,7 +70,7 @@ def map_spn_to_exo(exodus_path:str, spn_path:str, spn_size:tuple) -> tuple:
     # Return
     return spn_to_exo, confidence_list
 
-def get_element_info(exodus_path:str, element_grid:list, step_size:float) -> list:
+def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_size:float) -> list:
     """
     Gets a list of elements; the elements are ordered by the grains
     then elements within the grains
@@ -77,28 +78,52 @@ def get_element_info(exodus_path:str, element_grid:list, step_size:float) -> lis
     Parameters:
     * `exodus_path`:  The path to the exodus file
     * `element_grid`: The grid of elements
+    * `spn_to_exo`:   Mapping from spn id to exodus id
     * `step_size`:    The size of each element
 
     Returns an ordered list element objects
     """
     
-    # Read all the grains
-    mesh = pv.read(exodus_path)[0]
-    grain_list = [mesh[i] for i in range(mesh.n_blocks)]
+    # Print message (it takes a while)
+    print("\n=================================================")
+    print("Mapping EBSD elements to mesh elements...")
+    print("=================================================\n")
 
-    # Read all the centroids of the elements for each grain
-    centroid_list = []
-    for grain in grain_list:
-        elements = grain.cell_centers().points
-        elements = [list(element) for element in elements]
-        centroid_list += list(elements)
-    
-    # Iterate through centroids and store elements
+    # Initialise
+    exo_to_spn = dict(zip(spn_to_exo.values(), spn_to_exo.keys()))
+    position_dict = get_grain_positions(element_grid)
+    get_distance = lambda a, b : math.sqrt(math.pow(a[0]-b[0],2) + math.pow(a[1]-b[1],2))
     element_list = []
-    for centroid in centroid_list:
-        x_index = math.floor(centroid[0] / step_size)
-        y_index = math.floor(centroid[1] / step_size)
-        element_list.append(element_grid[y_index][x_index])
+
+    # Read grains and iterate through them
+    mesh = pv.read(exodus_path)[0]
+    for i in range(mesh.n_blocks):
+
+        # Get grain and grain information
+        grain = mesh[i]
+        exo_id = int(str(mesh.get_block_name(i)).split(" ")[-1])
+        grain_id = exo_to_spn[exo_id]
+
+        # Get centroids of the elements in the grain
+        elements = grain.cell_centers().points
+        centroid_list = [list(element) for element in elements]
+
+        # Iterate through centroids
+        for centroid in centroid_list:
+
+            # Get the positions of all elements in the grain
+            positions = position_dict[grain_id]
+            positions = [(positions["x"][i], positions["y"][i]) for i in range(len(positions["x"]))]
+            positions_scaled = [(position[0]*step_size, position[1]*step_size) for position in positions]
+
+            # Find element closest to centroid
+            distances = [get_distance(position, centroid) for position in positions_scaled]
+            min_index = distances.index(min(distances))
+            opt_position = positions[min_index]
+            element = element_grid[opt_position[1]][opt_position[0]]
+            element_list.append(element)
+    
+    # Return the list of element objects
     return element_list
 
 def renumber_grains(exodus_path:str) -> None:
@@ -167,7 +192,8 @@ def get_all_points(mesh:pv.core.composite.MultiBlock, exclude:list=None) -> list
     Returns the list of foreign points
     """
     exclude = [] if exclude == None else exclude
-    grain_id_list = [i+1 for i in range(len(mesh)) if not i+1 in exclude]
+    grain_id_list = [int(str(mesh.get_block_name(i)).split(" ")[-1])
+                     for i in range(len(mesh)) if not i+1 in exclude]
     point_list = []
     for grain_id in grain_id_list:
         grain = mesh[grain_id-1]

@@ -150,6 +150,35 @@ def get_areas(element_grid:list) -> dict:
             area_dict[grain_id] += 1
     return area_dict
 
+def get_grain_positions(element_grid:list) -> dict:
+    """
+    Gets the x and y positions for all the grains
+    
+    Parameters:
+    * `element_grid`: A grid of elements
+    
+    Returns a dictionary that maps the grain IDs
+    to their x and y positions
+    """
+    
+    # Initialise dictionary to store element positions
+    grain_ids = get_grain_ids(element_grid)
+    position_dict = {}
+    for grain_id in grain_ids:
+        position_dict[grain_id] = {"x": [], "y": []}
+    
+    # Add points to the element dictionary
+    for row in range(len(element_grid)):
+        for col in range(len(element_grid[row])):
+            grain_id = element_grid[row][col].get_grain_id()
+            if grain_id in [VOID_ELEMENT_ID]:
+                continue
+            position_dict[grain_id]["x"].append(col)
+            position_dict[grain_id]["y"].append(row)
+    
+    # Returns the position mapping
+    return position_dict
+
 def get_centroids(element_grid:list) -> dict:
     """
     Gets the centroids for all the grains
@@ -159,26 +188,17 @@ def get_centroids(element_grid:list) -> dict:
     
     Returns a dictionary that maps the grain IDs to their centroids
     """
-    
-    # Initialise dictionary to store element positions
+
+    # Initialise
     grain_ids = get_grain_ids(element_grid)
-    element_dict = {}
-    for grain_id in grain_ids:
-        element_dict[grain_id] = {"x": [], "y": []}
-    
-    # Add points to the element dictionary
-    for row in range(len(element_grid)):
-        for col in range(len(element_grid[row])):
-            grain_id = element_grid[row][col].get_grain_id()
-            if grain_id == VOID_ELEMENT_ID:
-                continue
-            element_dict[grain_id]["x"].append(col)
-            element_dict[grain_id]["y"].append(row)
-    
-    # Calculate centroids
+    position_dict = get_grain_positions(element_grid)
     centroid_dict = {}
+    
+    # Calculate centroids for each grain
     for grain_id in grain_ids:
-        x_mean = np.average(element_dict[grain_id]["x"])
-        y_mean = np.average(element_dict[grain_id]["y"])
+        x_mean = np.average(position_dict[grain_id]["x"])
+        y_mean = np.average(position_dict[grain_id]["y"])
         centroid_dict[grain_id] = (x_mean, y_mean)
+    
+    # Return the centroids
     return centroid_dict

@@ -235,7 +235,7 @@ class Controller:
         self.spn_to_exo, confidence_list = map_spn_to_exo(self.exodus_path, self.spn_path, spn_size)
 
         # Save element information
-        self.mesh_elements = get_element_info(self.exodus_path, self.element_grid, self.step_size)
+        self.mesh_elements = get_element_info(self.exodus_path, self.element_grid, self.spn_to_exo, self.step_size)
 
         # Save the mapping
         map_dict = {

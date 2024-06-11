@@ -13,8 +13,7 @@ itf = Interface()
 itf.define_headers("x", "y", "grainId", "Euler_phi1", "Euler_Phi", "Euler_phi2")
 
 # Read EBSD map
-# DATA_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data"
-DATA_FOLDER = "/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data"
+DATA_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data"
 FILE_NAME = "2024-06-07 (ansto_617_s1_simple)/simple_converted.csv"
 itf.import_ebsd(
     ebsd_path = f"{DATA_FOLDER}/{FILE_NAME}",
