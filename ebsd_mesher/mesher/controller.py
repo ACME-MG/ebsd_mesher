@@ -299,16 +299,23 @@ class Controller:
         """
         
         # Initialise
-        stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "grain_id": []}
+        stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "ebsd_id": [], "exo_id": []}
         
         # Iterate through ordered elements
         for element in self.mesh_elements:
+
+            # Save orientations
             phi_1, Phi, phi_2 = element.get_orientation(degrees)
             stats_dict["phi_1"].append(round_sf(phi_1, 5))
             stats_dict["Phi"].append(round_sf(Phi, 5))
             stats_dict["phi_2"].append(round_sf(phi_2, 5))
-            stats_dict["grain_id"].append(element.get_grain_id())
-        
+
+            # Save grain IDs
+            ebsd_id = element.get_grain_id()
+            stats_dict["ebsd_id"].append(ebsd_id)
+            exo_id = self.spn_to_exo(ebsd_id)
+            stats_dict["exo_id"].append(exo_id)
+
         # Save statistics
         dict_to_csv(stats_dict, f"{self.output_dir}/element_stats.csv", add_header=False)
 
