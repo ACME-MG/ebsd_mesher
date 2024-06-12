@@ -17,7 +17,9 @@ from ebsd_mesher.mesher.exodus import map_spn_to_exo, renumber_grains, get_exodu
 from ebsd_mesher.mesher.exodus import get_element_info, straighten_interface, scale_gripped_microstructure
 from ebsd_mesher.mesher.mesher import coarse_mesh
 from ebsd_mesher.helper.io import get_file_path_exists, dict_to_csv
+from ebsd_mesher.helper.general import round_sf
 from ebsd_mesher.visualiser.plotter import save_plot
+
 
 # Controller class
 class Controller:
@@ -277,10 +279,13 @@ class Controller:
                         phi_2_list.append(phi_2)
             
             # Store statistics
-            stats_dict["phi_1"].append(np.average(phi_1_list))
-            stats_dict["Phi"].append(np.average(Phi_list))
-            stats_dict["phi_2"].append(np.average(phi_2_list))
-            stats_dict["area"].append(area_dict[spn_id])
+            avg_phi_1 = np.average(phi_1_list)
+            avg_Phi   = np.average(Phi_list)
+            avg_phi_2 = np.average(phi_2_list)
+            stats_dict["phi_1"].append(round_sf(avg_phi_1, 5))
+            stats_dict["Phi"].append(round_sf(avg_Phi, 5))
+            stats_dict["phi_2"].append(round_sf(avg_phi_2, 5))
+            stats_dict["area"] .append(area_dict[spn_id])
         
         # Save statistics
         dict_to_csv(stats_dict, f"{self.output_dir}/grain_stats.csv", add_header=False)
@@ -299,9 +304,9 @@ class Controller:
         # Iterate through ordered elements
         for element in self.mesh_elements:
             phi_1, Phi, phi_2 = element.get_orientation(degrees)
-            stats_dict["phi_1"].append(phi_1)
-            stats_dict["Phi"].append(Phi)
-            stats_dict["phi_2"].append(phi_2)
+            stats_dict["phi_1"].append(round_sf(phi_1, 5))
+            stats_dict["Phi"].append(round_sf(Phi, 5))
+            stats_dict["phi_2"].append(round_sf(phi_2, 5))
             stats_dict["grain_id"].append(element.get_grain_id())
         
         # Save statistics

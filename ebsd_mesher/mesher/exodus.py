@@ -85,7 +85,7 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
     """
     
     # Print message (it takes a while)
-    print("\n=================================================")
+    print("=================================================")
     print("Mapping EBSD elements to mesh elements...")
     print("=================================================\n")
 
