@@ -10,6 +10,7 @@ import math, numpy as np
 from copy import deepcopy
 from ebsd_mesher.visualiser.ebsd_plotter import EBSDPlotter
 from ebsd_mesher.visualiser.mesh_plotter import MeshPlotter
+from ebsd_mesher.maths.orientation import get_average_euler, deg_to_rad, rad_to_deg
 from ebsd_mesher.mapper.gridder import read_elements, get_grain_ids, get_void_element, get_void_element_grid
 from ebsd_mesher.mapper.gridder import get_areas, VOID_ELEMENT_ID
 from ebsd_mesher.mapper.improver import clean_element_grid, smoothen_edges, pad_edges, remove_small_grains
@@ -259,36 +260,31 @@ class Controller:
         exo_to_spn = dict(zip(self.spn_to_exo.values(), self.spn_to_exo.keys()))
         stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "area": []}
         area_dict = get_areas(self.element_grid)
-        
-        # Iterate through each grain
-        for exo_id in exo_to_spn.keys():
+
+        # Iterate through ordered elements
+        for exo_id in self.mesh_grains.keys():
             
             # Get grain ID and check if void
             spn_id = exo_to_spn[exo_id]
             if spn_id in [VOID_ELEMENT_ID]:
                 continue
 
-            # Get average orientation
-            phi_1_list, Phi_list, phi_2_list = [], [], []
-            for row in range(len(self.element_grid)):
-                for col in range(len(self.element_grid[row])):
-                    if spn_id == self.element_grid[row][col].get_grain_id():
-                        phi_1, Phi, phi_2 = self.element_grid[row][col].get_orientation(degrees)
-                        phi_1_list.append(phi_1)
-                        Phi_list.append(Phi)
-                        phi_2_list.append(phi_2)
-            
-            # Store statistics
-            avg_phi_1 = np.average(phi_1_list)
-            avg_Phi   = np.average(Phi_list)
-            avg_phi_2 = np.average(phi_2_list)
-            stats_dict["phi_1"].append(round_sf(avg_phi_1, 5))
-            stats_dict["Phi"].append(round_sf(avg_Phi, 5))
-            stats_dict["phi_2"].append(round_sf(avg_phi_2, 5))
-            stats_dict["area"] .append(area_dict[spn_id])
-        
+            # Calculate average orientation
+            euler_list = [element.get_orientation(degrees) for element in self.mesh_grains[exo_id]]
+            if spn_id in self.grip_ids:
+                average_euler = euler_list[0]
+            else:
+                average_euler = get_average_euler(euler_list, degrees)
+
+            # Store average orientation
+            stats_dict["phi_1"].append(round_sf(average_euler[0], 5))
+            stats_dict["Phi"].append(round_sf(average_euler[1], 5))
+            stats_dict["phi_2"].append(round_sf(average_euler[2], 5))
+            stats_dict["area"].append(area_dict[spn_id])
+
         # Save statistics
-        dict_to_csv(stats_dict, f"{self.output_dir}/grain_stats.csv", add_header=False)
+        file_path = get_file_path_exists(f"{self.output_dir}/grain_stats", "csv")
+        dict_to_csv(stats_dict, file_path, add_header=False)
 
     def export_elements(self, degrees:bool=True) -> None:
         """
@@ -302,8 +298,8 @@ class Controller:
         stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "ebsd_id": [], "exo_id": []}
         
         # Iterate through ordered elements
-        for grain in self.mesh_grains:
-            for element in grain:
+        for exo_id in self.mesh_grains.keys():
+            for element in self.mesh_grains[exo_id]:
 
                 # Save orientations
                 phi_1, Phi, phi_2 = element.get_orientation(degrees)
@@ -318,7 +314,8 @@ class Controller:
                 stats_dict["exo_id"].append(exo_id)
 
         # Save statistics
-        dict_to_csv(stats_dict, f"{self.output_dir}/element_stats.csv", add_header=False)
+        file_path = get_file_path_exists(f"{self.output_dir}/element_stats", "csv")
+        dict_to_csv(stats_dict, file_path, add_header=False)
 
     def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
         """

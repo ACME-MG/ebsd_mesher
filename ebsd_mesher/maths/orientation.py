@@ -1,13 +1,15 @@
 """
  Title:         Orientation
  Description:   Functions related to orientations
- References:    https://www.researchgate.net/publication/324088567_Computing_Euler_angles_with_Bunge_convention_from_rotation_matrix
+ References:    [1] https://www.researchgate.net/publication/324088567_Computing_Euler_angles_with_Bunge_convention_from_rotation_matrix
+                [2] https://stackoverflow.com/questions/12374087/average-of-multiple-quaternions
  Author:        Janzen Choi
 
 """
 
 # Libraries
 import numpy as np, math, random
+from scipy.spatial.transform import Rotation
 
 def get_matrix_product(matrix_1:list, matrix_2:list) -> list:
     """
@@ -41,7 +43,8 @@ def get_inverted(matrix:list) -> list:
 
 def euler_to_matrix(euler:list) -> list:
     """
-    Determines the orientation matrix of a set of euler-bunge angles (rads)
+    Determines the orientation matrix of a set of euler-bunge angles (rads);
+    from Ref. [1]
     
     Parameters:
     * `euler`: The euler angle in euler-bunge form
@@ -64,7 +67,8 @@ def euler_to_matrix(euler:list) -> list:
 
 def matrix_to_euler(matrix:list) -> list:
     """
-    Determines the euler-bunge angles based on an orientation matrix (rads)
+    Determines the euler-bunge angles based on an orientation matrix (rads);
+    from Ref. [1]
 
     Parameters:
     * `matrix`: The orientation matrix
@@ -131,42 +135,66 @@ def random_quat():
     w = math.sqrt(u[0]) * math.cos(2 * math.pi * u[2])
     return [x, y, z, w]
 
-def euler_to_quat(phi_1:float, Phi:float, phi_2:float) -> float:
+def euler_to_quat(euler:list) -> list:
     """
-    Converts a set of euler-bunge angles into a quaternion (rads)
+    Converts a set of euler-bunge angles (rads) into a quaternion
 
     Parameters:
-    `phi_1`: The first euler angle
-    `Phi`:   The second euler angle
-    `phi_2`: The third euler angle
+    `euler`: The euler angle (rads)
 
     Returns the quaternion as a list
     """
-    cy = math.cos(phi_2 * 0.5)
-    sy = math.sin(phi_2 * 0.5)
-    cp = math.cos(Phi * 0.5)
-    sp = math.sin(Phi * 0.5)
-    cr = math.cos(phi_1 * 0.5)
-    sr = math.sin(phi_1 * 0.5)
-    x = sr * cp * cy - cr * sp * sy
-    y = cr * sp * cy + sr * cp * sy
-    z = cr * cp * sy - sr * sp * cy
-    w = cr * cp * cy + sr * sp * sy
-    return [x, y, z, w]
+    euler_array = np.array(euler)
+    rotation = Rotation.from_euler("zxz", euler_array, degrees=False)
+    quat = rotation.as_quat()
+    return list(quat)
 
-def quat_to_euler(x:float, y:float, z:float, w:float) -> list:
+def quat_to_euler(quat:list) -> list:
     """
     Converts a quaternion into a set of euler-bunge angles (rads)
 
     Parameters:
-    * `x`: The first quaternion value
-    * `y`: The second quaternion value
-    * `z`: The third quaternion value
-    * `w`: The fourth quaternion value
+    * `quaternion`: The quaternion
 
     Returns the euler angle as a list
     """
-    phi_1 = math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y))
-    Phi   = math.asin(max([min([2 * (w * y - z * x), 1]), -1]))
-    phi_2 = math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
-    return [phi_1, Phi, phi_2]
+    quat_array = np.array(quat)
+    rotation = Rotation.from_quat(quat_array)
+    euler = rotation.as_euler("zxz", degrees=False)
+    euler = [e+2*math.pi if e<0 else e for e in euler]
+    return euler
+
+def get_average_quat(quat_list:list) -> list:
+    """
+    Gets the average quaternion;
+    from Ref. [2]
+
+    Parameters:
+    * `quat_list`: List of quaternions
+
+    Returns the averaged quaternion
+    """
+    quat_array = np.array(quat_list)
+    weights = np.array([1 for _ in range(len(quat_array))])
+    average = np.linalg.eigh(np.einsum('ij,ik,i->...jk', quat_array, quat_array, weights))[1][:, -1]
+    return list(average)
+
+def get_average_euler(euler_list:list, degrees:bool=True) -> list:
+    """
+    Gets the average euler angle
+
+    Parameters:
+    * `euler_list`: List of euler-bunge angles (rads)
+    * `degrees`:    Whether the euler angles are in degrees
+    
+    Returns the averaged euler angles
+    """
+    euler_list = [list(euler) for euler in euler_list]
+    if degrees:
+        euler_list = deg_to_rad(euler_list)
+    quat_list = [euler_to_quat(euler) for euler in euler_list]
+    average_quat = get_average_quat(quat_list)
+    average_euler = quat_to_euler(average_quat)
+    if degrees:
+        average_euler = rad_to_deg(average_euler)
+    return average_euler

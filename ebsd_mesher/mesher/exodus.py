@@ -70,7 +70,7 @@ def map_spn_to_exo(exodus_path:str, spn_path:str, spn_size:tuple) -> tuple:
     # Return
     return spn_to_exo, confidence_list
 
-def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_size:float) -> list:
+def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_size:float) -> dict:
     """
     Gets a list of elements; the elements are ordered by the grains
     then elements within the grains
@@ -81,7 +81,7 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
     * `spn_to_exo`:   Mapping from spn id to exodus id
     * `step_size`:    The size of each element
 
-    Returns an ordered list of grains containing lists of element objects
+    Returns an ordered dict of grains containing lists of element objects
     """
     
     # Print message (it takes a while)
@@ -93,7 +93,7 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
     exo_to_spn = dict(zip(spn_to_exo.values(), spn_to_exo.keys()))
     position_dict = get_grain_positions(element_grid)
     get_distance = lambda a, b : math.sqrt(math.pow(a[0]-b[0],2) + math.pow(a[1]-b[1],2))
-    grain_list = []
+    grain_dict = {}
 
     # Read grains and iterate through them
     mesh = pv.read(exodus_path)[0]
@@ -123,10 +123,10 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
             opt_position = positions[min_index]
             element = element_grid[opt_position[1]][opt_position[0]]
             element_list.append(element)
-        grain_list.append(element_list)
+        grain_dict[exo_id] = element_list
 
-    # Return the list of element objects
-    return grain_list
+    # Return the dictionary of element objects
+    return grain_dict
 
 def renumber_grains(exodus_path:str) -> None:
     """

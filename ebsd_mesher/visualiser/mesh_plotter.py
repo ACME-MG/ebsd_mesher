@@ -16,13 +16,13 @@ from ebsd_mesher.mesher.exodus import get_exodus_dimension
 # Mesh Plotter class
 class MeshPlotter:
 
-    def __init__(self, exodus_path:str, mesh_grains:list, figure_x:float):
+    def __init__(self, exodus_path:str, mesh_grains:dict, figure_x:float):
         """
         Constructor for the mesh plotter
 
         Parameters:
         * `exodus_path`: The path to the mesh file
-        * `mesh_grains`: The list of grains containing lists of element objects
+        * `mesh_grains`: The dictionary of grains containing lists of element objects
         * `figure_x`:    The initial horizontal size of the figures
         """
 
@@ -47,10 +47,10 @@ class MeshPlotter:
         """
 
         # Read mesh
-        mesh_info = pv.read(self.exodus_path)[0]
+        mesh = pv.read(self.exodus_path)[0]
 
         # Iterate and plot each grain
-        for i, grain in enumerate(mesh_info):
+        for i, grain in enumerate(mesh):
             for cell_id in range(grain.n_cells):
                 
                 # Get cell coordinates and ignore if not surface
@@ -59,7 +59,8 @@ class MeshPlotter:
                     continue
 
                 # Get IPF colour
-                element = self.mesh_grains[i][cell_id]
+                exo_id = int(str(mesh.get_block_name(i)).split(" ")[-1])
+                element = self.mesh_grains[exo_id][cell_id]
                 orientation = element.get_orientation(degrees=True)
                 colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
                 
