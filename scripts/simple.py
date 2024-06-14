@@ -33,8 +33,8 @@ itf.plot_ebsd(
 
 # Mesh the EBSD map and plot
 itf.mesh("~/cubit/psculpt.exe", z_elements=1)
-itf.export_grains(degrees=True)
-itf.export_elements(degrees=True)
+itf.export_grains(degrees=False)
+itf.export_elements(degrees=False)
 itf.plot_mesh(
     mesh_path = "raw_mesh",
     ipf       = "x",
