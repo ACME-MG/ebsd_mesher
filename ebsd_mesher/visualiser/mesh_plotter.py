@@ -10,26 +10,25 @@ import pyvista as pv
 import itertools
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from ebsd_mesher.mapper.gridder import VOID_ELEMENT_ID
 from ebsd_mesher.maths.ipf_cubic import euler_to_rgb
 from ebsd_mesher.mesher.exodus import get_exodus_dimension
 
 # Mesh Plotter class
 class MeshPlotter:
 
-    def __init__(self, exodus_path:str, mesh_elements:list, figure_x:float):
+    def __init__(self, exodus_path:str, mesh_grains:list, figure_x:float):
         """
         Constructor for the mesh plotter
 
         Parameters:
-        * `exodus_path`:   The path to the mesh file
-        * `mesh_elements`: The list of element objects
-        * `figure_x`:      The initial horizontal size of the figures
+        * `exodus_path`: The path to the mesh file
+        * `mesh_grains`: The list of grains containing lists of element objects
+        * `figure_x`:    The initial horizontal size of the figures
         """
 
         # Initialise internal variables
         self.exodus_path = exodus_path
-        self.mesh_elements = mesh_elements
+        self.mesh_grains = mesh_grains
         
         # Initialise plot
         x_max = get_exodus_dimension(exodus_path, "x")
@@ -47,24 +46,20 @@ class MeshPlotter:
         * `ipf`: The IPF direction to plot the mesh
         """
 
-        # Initialise
-        element_id = 0
+        # Read mesh
         mesh_info = pv.read(self.exodus_path)[0]
 
         # Iterate and plot each grain
-        for grain in mesh_info:
+        for i, grain in enumerate(mesh_info):
             for cell_id in range(grain.n_cells):
                 
                 # Get cell coordinates and ignore if not surface
                 cell_coordinates = get_cell_coordinates(grain, cell_id)
                 if cell_coordinates == []:
                     continue
-                
-                # Get element and increment
-                element = self.mesh_elements[element_id]
-                element_id += 1
-                
+
                 # Get IPF colour
+                element = self.mesh_grains[i][cell_id]
                 orientation = element.get_orientation(degrees=True)
                 colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
                 

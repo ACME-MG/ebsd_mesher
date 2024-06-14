@@ -268,7 +268,7 @@ class Interface:
         """
         Checks that the EBSD mesh has been generated
         """
-        if self.__controller__.mesh_elements == None:
+        if self.__controller__.mesh_grains == None:
             raise ValueError("The EBSD mesh has not been generated yet!")
 
     def __check_grips__(self) -> None:

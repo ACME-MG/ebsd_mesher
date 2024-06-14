@@ -81,7 +81,7 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
     * `spn_to_exo`:   Mapping from spn id to exodus id
     * `step_size`:    The size of each element
 
-    Returns an ordered list element objects
+    Returns an ordered list of grains containing lists of element objects
     """
     
     # Print message (it takes a while)
@@ -93,7 +93,7 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
     exo_to_spn = dict(zip(spn_to_exo.values(), spn_to_exo.keys()))
     position_dict = get_grain_positions(element_grid)
     get_distance = lambda a, b : math.sqrt(math.pow(a[0]-b[0],2) + math.pow(a[1]-b[1],2))
-    element_list = []
+    grain_list = []
 
     # Read grains and iterate through them
     mesh = pv.read(exodus_path)[0]
@@ -109,6 +109,7 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
         centroid_list = [list(element) for element in elements]
 
         # Iterate through centroids
+        element_list = []
         for centroid in centroid_list:
 
             # Get the positions of all elements in the grain
@@ -122,9 +123,10 @@ def get_element_info(exodus_path:str, element_grid:list, spn_to_exo:dict, step_s
             opt_position = positions[min_index]
             element = element_grid[opt_position[1]][opt_position[0]]
             element_list.append(element)
-    
+        grain_list.append(element_list)
+
     # Return the list of element objects
-    return element_list
+    return grain_list
 
 def renumber_grains(exodus_path:str) -> None:
     """
@@ -234,9 +236,9 @@ def get_x_lists(exodus_path:str, grip_id:int) -> tuple:
     other_points  = get_all_points(pv_mesh, [grip_id])
     border_points = get_border_points(grip_points, other_points)
 
-    # Extracts x coordinates from the points
-    grip_x_list   = list(set([point[0] for point in grip_points]))
-    border_x_list = list(set([point[0] for point in border_points]))
+    # Extracts x coordinates from the points (sets are O(1))
+    grip_x_list   = set([point[0] for point in grip_points])
+    border_x_list = set([point[0] for point in border_points])
 
     # Returns extracted x coordinates
     return grip_x_list, border_x_list
@@ -259,7 +261,7 @@ def straighten_interface(exodus_path:str, grip_id:int, left:bool) -> None:
     # Fix interface
     nc_mesh = nc.Dataset(exodus_path, mode="a")
     for i in range(len(nc_mesh.variables["coordx"])):
-        x_coord = nc_mesh.variables["coordx"][i]
+        x_coord = float(nc_mesh.variables["coordx"][i])
         if x_coord in border_x_list:
             nc_mesh.variables["coordx"][i] = max_x
         elif left and not x_coord in grip_x_list:
@@ -281,10 +283,10 @@ def scale_gripped_microstructure(exodus_path:str, l_grip_id:int, r_grip_id:int,
     * `micro_length`: The desired length of the microstructure
     """
 
-    # Gets the x coordinates in the grips
+    # Gets the x coordinates in the grips (sets are O(1))
     pv_mesh       = pv.read(exodus_path)[0]
-    l_grip_x_list = list(set([point[0] for point in get_points(pv_mesh[l_grip_id-1])]))
-    r_grip_x_list = list(set([point[0] for point in get_points(pv_mesh[r_grip_id-1])]))
+    l_grip_x_list = set([point[0] for point in get_points(pv_mesh[l_grip_id-1])])
+    r_grip_x_list = set([point[0] for point in get_points(pv_mesh[r_grip_id-1])])
     
     # Gets the dimensions of the unscaled grips and microstructure
     l_grip_max = max(l_grip_x_list)
@@ -302,11 +304,11 @@ def scale_gripped_microstructure(exodus_path:str, l_grip_id:int, r_grip_id:int,
     # Conduct scaling
     nc_mesh = nc.Dataset(exodus_path, mode="a")
     for i in range(len(nc_mesh.variables["coordx"])):
-        x_coord = nc_mesh.variables["coordx"][i]
+        x_coord = float(nc_mesh.variables["coordx"][i])
         if x_coord in l_grip_x_list:
-            nc_mesh.variables["coordx"][i] = scale_l_grip(x_coord)
+            nc_mesh.variables["coordx"][i] = scale_l_grip(nc_mesh.variables["coordx"][i])
         elif x_coord in r_grip_x_list:
-            nc_mesh.variables["coordx"][i] = scale_r_grip(x_coord)
+            nc_mesh.variables["coordx"][i] = scale_r_grip(nc_mesh.variables["coordx"][i])
         else:
-            nc_mesh.variables["coordx"][i] = scale_micro(x_coord)
+            nc_mesh.variables["coordx"][i] = scale_micro(nc_mesh.variables["coordx"][i])
     nc_mesh.close()

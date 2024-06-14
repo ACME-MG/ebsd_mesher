@@ -38,7 +38,7 @@ class Controller:
         self.input_path    = f"{output_dir}/input.i"
         self.spn_path      = f"{output_dir}/voxels.spn"
         self.exodus_path   = f"{output_dir}/mesh.e"
-        self.mesh_elements = None
+        self.mesh_grains   = None
         self.grip_ids      = [None, None] # left, right
         self.spn_to_exo    = None
 
@@ -237,7 +237,7 @@ class Controller:
         self.spn_to_exo, confidence_list = map_spn_to_exo(self.exodus_path, self.spn_path, spn_size)
 
         # Save element information
-        self.mesh_elements = get_element_info(self.exodus_path, self.element_grid, self.spn_to_exo, self.step_size)
+        self.mesh_grains = get_element_info(self.exodus_path, self.element_grid, self.spn_to_exo, self.step_size)
 
         # Save the mapping
         map_dict = {
@@ -302,19 +302,20 @@ class Controller:
         stats_dict = {"phi_1": [], "Phi": [], "phi_2": [], "ebsd_id": [], "exo_id": []}
         
         # Iterate through ordered elements
-        for element in self.mesh_elements:
+        for grain in self.mesh_grains:
+            for element in grain:
 
-            # Save orientations
-            phi_1, Phi, phi_2 = element.get_orientation(degrees)
-            stats_dict["phi_1"].append(round_sf(phi_1, 5))
-            stats_dict["Phi"].append(round_sf(Phi, 5))
-            stats_dict["phi_2"].append(round_sf(phi_2, 5))
+                # Save orientations
+                phi_1, Phi, phi_2 = element.get_orientation(degrees)
+                stats_dict["phi_1"].append(round_sf(phi_1, 5))
+                stats_dict["Phi"].append(round_sf(Phi, 5))
+                stats_dict["phi_2"].append(round_sf(phi_2, 5))
 
-            # Save grain IDs
-            ebsd_id = element.get_grain_id()
-            stats_dict["ebsd_id"].append(ebsd_id)
-            exo_id = self.spn_to_exo(ebsd_id)
-            stats_dict["exo_id"].append(exo_id)
+                # Save grain IDs
+                ebsd_id = element.get_grain_id()
+                stats_dict["ebsd_id"].append(ebsd_id)
+                exo_id = self.spn_to_exo[ebsd_id]
+                stats_dict["exo_id"].append(exo_id)
 
         # Save statistics
         dict_to_csv(stats_dict, f"{self.output_dir}/element_stats.csv", add_header=False)
@@ -355,7 +356,7 @@ class Controller:
         * `ipf`:       The IPF colour ("x", "y", "z")
         * `figure_x`:  The initial horizontal size of the figures
         """
-        mesh_plotter = MeshPlotter(self.exodus_path, self.mesh_elements, figure_x)
+        mesh_plotter = MeshPlotter(self.exodus_path, self.mesh_grains, figure_x)
         mesh_plotter.plot_mesh(ipf)
         mesh_path = get_file_path_exists(mesh_path, "png")
         save_plot(mesh_path)

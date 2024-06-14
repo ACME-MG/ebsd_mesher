@@ -44,7 +44,7 @@ itf.plot_mesh(
 # Fix the interfaces of the grips and scale the mesh
 itf.fix_grip_interfaces(2300/4, 2300)
 itf.scale_mesh(1571, "y")
-# itf.scale_mesh(323, "z")
+itf.scale_mesh(323, "z")
 itf.plot_mesh(
     mesh_path = "fixed_mesh",
     ipf       = "x",
