@@ -79,6 +79,21 @@ class Interface:
         self.__print__(f"Adding the EBSD map")
         self.__controller__.import_ebsd(ebsd_path, step_size, degrees)
 
+    def get_bounds(self) -> dict:
+        """
+        Returns the bounds of the imported EBSD map
+        """
+        self.__print__(f"Getting the bounds of the EBSD map")
+        bounds = self.__controller__.get_bounds()
+        return bounds
+    
+    def export_bounds(self) -> None:
+        """
+        Exports the bounds
+        """
+        self.__print__(f"Exporting the bounds of the EBSD map")
+        self.__controller__.export_bounds()
+
     def redefine_domain(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
         """
         Redefines the domain

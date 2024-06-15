@@ -7,7 +7,7 @@
 
 # Libraries
 import matplotlib.pyplot as plt
-from ebsd_mesher.mapper.gridder import get_centroids
+from ebsd_mesher.mapper.gridder import get_centroids, VOID_ELEMENT_ID
 from ebsd_mesher.maths.ipf_cubic import euler_to_rgb
 from ebsd_mesher.visualiser.plotter import get_coordinate, get_boundary
 
@@ -47,14 +47,27 @@ class EBSDPlotter:
         Parameters:
         * `ipf`: The IPF direction
         """
+
+        # Initialise and iterate through elements
         x_list, y_list, colour_list = [], [], []
         for row in range(len(self.element_grid)):
             for col in range(len(self.element_grid[row])):
+
+                # Get element and check if void 
+                element = self.element_grid[row][col]
+                if element.get_grain_id() in [VOID_ELEMENT_ID]:
+                    continue
+
+                # Get element position
                 x_list.append(get_coordinate(col, self.step_size))
                 y_list.append(get_coordinate(row, self.step_size))
-                orientation = self.element_grid[row][col].get_orientation(degrees=True)
+
+                # Get element orientation
+                orientation = element.get_orientation(degrees=True)
                 colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
                 colour_list.append(colour)
+        
+        # Plot the elements
         plt.scatter(x_list, y_list, c=colour_list, s=self.square_size**2, marker="s")
 
     def plot_border(self) -> None:

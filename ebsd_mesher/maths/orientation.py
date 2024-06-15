@@ -115,26 +115,6 @@ def deg_to_rad(degrees:float) -> float:
         return [deg_to_rad(d) for d in degrees]
     return degrees * math.pi / 180
 
-def random_euler() -> list:
-    """
-    Generates a set of (uniformly) random euler-bunge angles;
-    """
-    phi_1 = random.random() * 360.
-    Phi = 180. * math.acos(2 * random.random() - 1) / np.pi
-    phi_2 = random.random() * 360.
-    return [phi_1, Phi, phi_2]
-
-def random_quat():
-    """
-    Generates a (uniformly) random quaternion
-    """
-    u = [random.uniform(0, 1) for _ in range(3)]
-    x = math.sqrt(1 - u[0]) * math.sin(2 * math.pi * u[1])
-    y = math.sqrt(1 - u[0]) * math.cos(2 * math.pi * u[1])
-    z = math.sqrt(u[0]) * math.sin(2 * math.pi * u[2])
-    w = math.sqrt(u[0]) * math.cos(2 * math.pi * u[2])
-    return [x, y, z, w]
-
 def euler_to_quat(euler:list) -> list:
     """
     Converts a set of euler-bunge angles (rads) into a quaternion
@@ -142,7 +122,7 @@ def euler_to_quat(euler:list) -> list:
     Parameters:
     `euler`: The euler angle (rads)
 
-    Returns the quaternion as a list
+    Returns the quaternion as a list (x,y,z,w)
     """
     euler_array = np.array(euler)
     rotation = Rotation.from_euler("zxz", euler_array, degrees=False)
@@ -154,7 +134,7 @@ def quat_to_euler(quat:list) -> list:
     Converts a quaternion into a set of euler-bunge angles (rads)
 
     Parameters:
-    * `quaternion`: The quaternion
+    * `quaternion`: The quaternion (x,y,z,w)
 
     Returns the euler angle as a list
     """
@@ -170,7 +150,7 @@ def get_average_quat(quat_list:list) -> list:
     from Ref. [2]
 
     Parameters:
-    * `quat_list`: List of quaternions
+    * `quat_list`: List of quaternions (x,y,z,w)
 
     Returns the averaged quaternion
     """

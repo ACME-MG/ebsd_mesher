@@ -14,9 +14,9 @@ itf.define_headers("x", "y", "grainId", "Euler_phi1", "Euler_Phi", "Euler_phi2")
 
 # Read EBSD map
 DATA_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data"
-FILE_NAME = "2024-06-07 (ansto_617_s1_simple)/simple_converted.csv"
+FILE_PATH = "2024-06-07 (ansto_617_s1_simple)/simple_converted.csv"
 itf.import_ebsd(
-    ebsd_path = f"{DATA_FOLDER}/{FILE_NAME}",
+    ebsd_path = f"{DATA_FOLDER}/{FILE_PATH}",
     step_size = 20,
     degrees   = True
 )
@@ -44,7 +44,7 @@ itf.plot_mesh(
 # Fix the interfaces of the grips and scale the mesh
 itf.fix_grip_interfaces(2300/4, 2300)
 itf.scale_mesh(1571, "y")
-itf.scale_mesh(323, "z")
+# itf.scale_mesh(323, "z")
 itf.plot_mesh(
     mesh_path = "fixed_mesh",
     ipf       = "x",

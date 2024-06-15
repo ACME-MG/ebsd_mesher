@@ -69,6 +69,36 @@ class Controller:
         self.element_grid = read_elements(ebsd_path, step_size, self.headers, degrees)
         self.step_size = step_size
 
+    def get_bounds(self) -> dict:
+        """
+        Returns the bounds of the imported EBSD map
+        """
+
+        # Initialise bounds
+        big_number = 1e7
+        min_x, max_x, min_y, max_y = big_number, -big_number, big_number, -big_number
+
+        # Iterate through elements and update bounds
+        for row in range(len(self.element_grid)):
+            for col in range(len(self.element_grid[row])):
+                if self.element_grid[row][col].get_grain_id() == VOID_ELEMENT_ID:
+                    continue
+                min_x = min(col*self.step_size, min_x)
+                max_x = max(col*self.step_size, max_x)
+                min_y = min(row*self.step_size, min_y)
+                max_y = max(row*self.step_size, max_y)
+
+        # Return as a dictionary
+        return {"min_x": min_x, "max_x": max_x, "min_y": min_y, "max_y": max_y}
+
+    def export_bounds(self) -> None:
+        """
+        Exports the bounds
+        """
+        bounds = self.get_bounds()
+        bounds_path = get_file_path_exists(f"{self.output_dir}/bounds", "csv")
+        dict_to_csv(bounds, bounds_path)
+
     def redefine_domain(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
         """
         Redefines the domain
