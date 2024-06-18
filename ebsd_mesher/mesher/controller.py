@@ -76,20 +76,20 @@ class Controller:
 
         # Initialise bounds
         big_number = 1e7
-        min_x, max_x, min_y, max_y = big_number, -big_number, big_number, -big_number
+        x_min, x_max, y_min, y_max = big_number, -big_number, big_number, -big_number
 
         # Iterate through elements and update bounds
         for row in range(len(self.element_grid)):
             for col in range(len(self.element_grid[row])):
                 if self.element_grid[row][col].get_grain_id() == VOID_ELEMENT_ID:
                     continue
-                min_x = min(col*self.step_size, min_x)
-                max_x = max(col*self.step_size, max_x)
-                min_y = min(row*self.step_size, min_y)
-                max_y = max(row*self.step_size, max_y)
+                x_min = min(col*self.step_size, x_min)
+                x_max = max(col*self.step_size, x_max)
+                y_min = min(row*self.step_size, y_min)
+                y_max = max(row*self.step_size, y_max)
 
         # Return as a dictionary
-        return {"min_x": min_x, "max_x": max_x, "min_y": min_y, "max_y": max_y}
+        return {"x_min": x_min, "x_max": x_max, "y_min": y_min, "y_max": y_max}
 
     def export_bounds(self) -> None:
         """
