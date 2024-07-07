@@ -9,7 +9,7 @@
 from random import randint
 from copy import deepcopy
 from ebsd_mesher.mapper.gridder import VOID_ELEMENT_ID, get_void_element, get_void_element_grid, get_areas, get_grain_ids
-from ebsd_mesher.mapper.neighbour import get_neighbours, get_all_neighbours
+from ebsd_mesher.mapper.neighbour import get_neighbours
 
 def clean_element_grid(element_grid:list) -> list:
     """
