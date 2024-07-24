@@ -187,12 +187,12 @@ class Controller:
         threshold /= self.step_size**2
         self.element_grid = remove_small_grains(self.element_grid, threshold)
 
-    def add_grips(self, num_cells:int) -> None:
+    def add_grips(self, num_elements:int) -> None:
         """
         Adds grips to the left and right of the microstructure
         
         Parameters:
-        * `num_cells`: The number of cells (in the x-direction) to use in the grips
+        * `num_elements`: The number of cells (in the x-direction) to use in the grips
         """
         
         # Create grain IDs for the grips
@@ -205,8 +205,8 @@ class Controller:
         # Add grip IDs to element grid
         new_element_grid = deepcopy(self.element_grid)
         for row in range(len(new_element_grid)):
-            l_elements = [get_void_element(l_grip_id) for _ in range(num_cells)]
-            r_elements = [get_void_element(r_grip_id) for _ in range(num_cells)]
+            l_elements = [get_void_element(l_grip_id) for _ in range(num_elements)]
+            r_elements = [get_void_element(r_grip_id) for _ in range(num_elements)]
             new_element_grid[row] = l_elements + new_element_grid[row] + r_elements
         self.element_grid = new_element_grid
 

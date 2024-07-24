@@ -122,7 +122,7 @@ class Interface:
             raise ValueError("The 'factor' parameter needs to be greater than 0!")
         self.__controller__.decrease_resolution(factor)
 
-    def clean(self, iterations:int=1) -> None:
+    def clean(self, iterations:int) -> None:
         """
         Cleans the EBSD map
 
@@ -133,7 +133,7 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.clean(iterations)
 
-    def smooth(self, iterations:int=1) -> None:
+    def smooth(self, iterations:int) -> None:
         """
         Smoothens the edges of the grains in the EBSD map
 
@@ -144,7 +144,7 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.smooth(iterations)
     
-    def fill(self, iterations:int=1) -> None:
+    def fill(self, iterations:int) -> None:
         """
         Fills in the voids in the EBSD map
 
@@ -166,16 +166,16 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.remove_grains(threshold)
 
-    def add_grips(self, num_cells:int) -> None:
+    def add_grips(self, num_elements:int) -> None:
         """
         Adds grips to the left and right of the microstructure
         
         Parameters:
-        * `num_cells`: The number of cells (in the x-direction) to use in the grips
+        * `num_elements`: The number of elements (in the x-direction) to use in the grips
         """
         self.__print__(f"Adding grips to the left and right of the EBSD map")
         self.__check_ebsd__()
-        self.__controller__.add_grips(num_cells)
+        self.__controller__.add_grips(num_elements)
 
     def plot_ebsd(self, ebsd_path:str="ebsd", ipf:str="x", figure_x:float=10,
                   grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
@@ -235,7 +235,7 @@ class Interface:
 
     def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
         """
-        Fixes the interface between the grip and the microstructure
+        Fixes the interfaces between the grips and the microstructure
 
         Parameters:
         * `grip_length`:  The desired length of the grip
@@ -245,13 +245,13 @@ class Interface:
         self.__check_grips__()
         self.__controller__.fix_grip_interfaces(grip_length, micro_length)
 
-    def scale_mesh(self, length:float, direction:str="x") -> None:
+    def scale_mesh(self, length:float, direction:str) -> None:
         """
         Scales the mesh to a certain length along a certain direction
 
         Parameters:
         * `length`:    The length to scale the mesh to
-        * `direction`: The direction to conduct the scaling
+        * `direction`: The direction to conduct the scaling ("x", "y", "z")
         """
         self.__print__(f"Scaling the mesh along the {direction}-axis to {length}")
         self.__check_mesh__()
