@@ -61,7 +61,7 @@ def coarse_mesh(psculpt_path:str, thickness:int, num_processors:int, element_gri
     with open(spn_path, "w+") as fh:
         for i in range(len(element_grid[0])):  # x
             for j in range(len(element_grid)): # y
-                for _ in range(thickness):   # z
+                for _ in range(thickness):     # z
                     fh.write(f"{element_grid[j][i].get_grain_id()} ")
 
     # Create input file
