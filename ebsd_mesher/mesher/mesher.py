@@ -1,6 +1,7 @@
 """
  Title:         Mesher
- Description:   For converting the element grid into a mesh
+ Description:   For converting the element grid into a mesh;
+                Does not use adaptive meshing because it's broken
  Author:        Janzen Choi
 
 """

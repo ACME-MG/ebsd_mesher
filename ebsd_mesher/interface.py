@@ -110,8 +110,7 @@ class Interface:
 
     def decrease_resolution(self, factor:int) -> None:
         """
-        Decreases the resolution of the pixellated EBSD map;
-        define the factor as a fraction to increase the resolution
+        Decreases the resolution of the pixellated EBSD map
         
         Parameters:
         * `factor`: The factor of the resolution reduction
@@ -122,9 +121,22 @@ class Interface:
             raise ValueError("The 'factor' parameter needs to be greater than 0!")
         self.__controller__.decrease_resolution(factor)
 
+    def increase_resolution(self, factor:int) -> None:
+        """
+        Increases the resolution of the pixellated EBSD map
+                
+        Parameters:
+        * `factor`: The factor of the resolution increase
+        """
+        self.__print__(f"Increasing the sample resolution by a factor of {factor}")
+        self.__check_ebsd__()
+        if factor < 0:
+            raise ValueError("The 'factor' parameter needs to be greater than 0!")
+        self.__controller__.increase_resolution(factor)
+
     def clean(self, iterations:int) -> None:
         """
-        Cleans the EBSD map
+        Cleans the EBSD map; can mess up equivalent radius distribution
 
         Parameters:
         * `iterations`: The number of times to conduct the cleaning

@@ -144,7 +144,25 @@ class Controller:
         new_element_grid = get_void_element_grid(new_x_size, new_y_size)
         for row in range(new_y_size):
             for col in range(new_x_size):
-                new_element_grid[row][col] = deepcopy(self.element_grid[row*factor][col*factor])
+                element = self.element_grid[math.floor(row*factor)][math.floor(col*factor)]
+                new_element_grid[row][col] = deepcopy(element)
+        self.element_grid = new_element_grid
+
+    def increase_resolution(self, factor:int) -> None:
+        """
+        Increases the resolution of the voxellation
+        
+        Parameters:
+        * `factor`: The factor of the resolution increase
+        """
+        self.step_size /= factor
+        new_x_size = math.ceil(len(self.element_grid[0]) * factor)
+        new_y_size = math.ceil(len(self.element_grid) * factor)
+        new_element_grid = get_void_element_grid(new_x_size, new_y_size)
+        for row in range(new_y_size):
+            for col in range(new_x_size):
+                element = self.element_grid[math.floor(row/factor)][math.floor(col/factor)]
+                new_element_grid[row][col] = deepcopy(element)
         self.element_grid = new_element_grid
 
     def clean(self, iterations:int=1) -> None:

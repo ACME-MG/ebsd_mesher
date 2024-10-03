@@ -143,7 +143,7 @@ def renumber_grains(exodus_path:str) -> None:
 
 def get_exodus_dimension(exodus_path:str, direction:str="z") -> float:
     """
-    Gets the dimension of the mesh in a certaind irection
+    Gets the dimension of the mesh in a certain direction
 
     Parameters:
     * `exodus_path`: Path to the exodus file

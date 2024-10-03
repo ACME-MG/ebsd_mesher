@@ -13,12 +13,10 @@ itf = Interface()
 itf.define_headers("x", "y", "grainId", "Euler_phi1", "Euler_Phi", "Euler_phi2")
 
 # Read EBSD data
-EBSD_PATH = "/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res20gs5/ebsdExportColumnsTableReduced_FillRegion.csv"
-itf.import_ebsd(
-    ebsd_path = EBSD_PATH,
-    step_size = 20,
-    degrees   = True
-)
+itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res5gs20/ebsdExportColumnsTableReduced_FillRegion.csv", 5)
+# itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res10gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 10)
+# itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res15gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 15)
+# itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res20gs5/ebsdExportColumnsTableReduced_FillRegion.csv",  20)
 
 # Plot raw EBSD map
 itf.plot_ebsd(
@@ -62,11 +60,10 @@ itf.plot_ebsd(
 
 # Process the EBSD map
 itf.remove_grains(1000)
-# itf.decrease_resolution(4)
+# itf.decrease_resolution(5)
 itf.fill(5)
-itf.clean(1)
-# itf.smooth(1)
-itf.add_grips(30)
+itf.smooth(1)
+itf.add_grips(60)
 
 # Process and plot EBSD map
 itf.plot_ebsd(
@@ -78,13 +75,13 @@ itf.plot_ebsd(
 )
 
 # Mesh the EBSD map and plot
-itf.mesh("~/cubit/psculpt.exe", z_elements=5)
+itf.mesh("~/cubit/psculpt.exe", z_elements=20)
 itf.export_grains(degrees=False)
 itf.export_elements(degrees=False)
 itf.plot_mesh(
     mesh_path = "4_mesh_raw",
     ipf       = "x",
-    figure_x  = 20
+    figure_x  = 40
 )
 
 # Fix the interfaces of the grips and scale the mesh
@@ -94,5 +91,5 @@ itf.scale_mesh(300, "z")
 itf.plot_mesh(
     mesh_path = "5_mesh_fixed",
     ipf       = "x",
-    figure_x  = 20
+    figure_x  = 40
 )

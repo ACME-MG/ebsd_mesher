@@ -54,7 +54,7 @@ class MeshPlotter:
             for cell_id in range(grain.n_cells):
                 
                 # Get cell coordinates and ignore if not surface
-                cell_coordinates = get_cell_coordinates(grain, cell_id)
+                cell_coordinates = get_surface_cell_coordinates(grain, cell_id)
                 if cell_coordinates == []:
                     continue
 
@@ -66,10 +66,12 @@ class MeshPlotter:
                 
                 # Plot the cell
                 cell_coordinates = order_vertices(cell_coordinates)
+                if cell_coordinates == None:
+                    raise ValueError("Element with negative scaled Jacobian! Remesh necessary!")
                 polygon = patches.Polygon(cell_coordinates, closed=True, fill=True, facecolor=colour, edgecolor="black")
                 self.axis.add_patch(polygon)
 
-def get_cell_coordinates(grain:pv.core.pointset.UnstructuredGrid, cell_id:int) -> list:
+def get_surface_cell_coordinates(grain:pv.core.pointset.UnstructuredGrid, cell_id:int) -> list:
     """
     Gets the coordinates of a cell
 
