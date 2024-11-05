@@ -13,13 +13,16 @@ itf = Interface()
 itf.define_headers("x", "y", "grainId", "Euler_phi1", "Euler_Phi", "Euler_phi2")
 
 # Constants
-GRIP_SIZE = 7
+DEC_RESOL  = 2
+GRIP_SIZE  = 8
+Z_ELEMENTS = 3
+STRAIGHTEN = False
 
 # Read EBSD data
-# itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res5gs20/ebsdExportColumnsTableReduced_FillRegion.csv", 5)
-# itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res10gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 10)
-itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res15gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 15)
-# itf.import_ebsd("/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res20gs5/ebsdExportColumnsTableReduced_FillRegion.csv",  20)
+# itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res5gs20/ebsdExportColumnsTableReduced_FillRegion.csv", 5)
+# itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res10gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 10)
+# itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res15gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 15)
+itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res20gs5/ebsdExportColumnsTableReduced_FillRegion.csv",  20)
 
 # Plot raw EBSD map
 itf.plot_ebsd(
@@ -63,7 +66,8 @@ itf.plot_ebsd(
 
 # Process the EBSD map
 itf.remove_grains(1000)
-itf.decrease_resolution(3)
+if DEC_RESOL > 1:
+    itf.decrease_resolution(DEC_RESOL)
 itf.fill(5)
 # itf.smooth(1)
 itf.add_grips(GRIP_SIZE)
@@ -78,7 +82,7 @@ itf.plot_ebsd(
 )
 
 # Mesh the EBSD map and plot
-itf.mesh("~/cubit/psculpt.exe", z_elements=1)
+itf.mesh("~/cubit/psculpt.exe", z_elements=Z_ELEMENTS)
 itf.export_grains(degrees=False)
 itf.export_elements(degrees=False)
 itf.plot_mesh(
@@ -88,9 +92,9 @@ itf.plot_mesh(
 )
 
 # Fix the interfaces of the grips and scale the mesh
-itf.fix_grip_interfaces(nominal_length/3, nominal_length)
+itf.fix_grip_interfaces(nominal_length/3, nominal_length, STRAIGHTEN)
 itf.scale_mesh(nominal_width, "y")
-itf.scale_mesh(20, "z")
+itf.scale_mesh(300, "z")
 itf.plot_mesh(
     mesh_path = "5_mesh_fixed",
     ipf       = "x",

@@ -8,7 +8,7 @@
 """
 
 # Libraries
-import numpy as np, math, random
+import numpy as np, math
 from scipy.spatial.transform import Rotation
 
 def get_matrix_product(matrix_1:list, matrix_2:list) -> list:

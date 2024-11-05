@@ -365,18 +365,20 @@ class Controller:
         file_path = get_file_path_exists(f"{self.output_dir}/element_stats", "csv")
         dict_to_csv(stats_dict, file_path, add_header=False)
 
-    def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
+    def fix_grip_interfaces(self, grip_length:float, micro_length:float, straighten:bool) -> None:
         """
         Fixes the interface between the grip and the microstructure
 
         Parameters:
         * `grip_length`:  The desired length of the grip
         * `micro_length`: The desired length of the microstructure
+        * `straighten`:   Whether to also straighten the grip interfaces
         """
         l_grip_id = self.spn_to_exo[self.grip_ids[0]]
         r_grip_id = self.spn_to_exo[self.grip_ids[1]]
-        straighten_interface(self.exodus_path, l_grip_id, left=True)
-        straighten_interface(self.exodus_path, r_grip_id, left=False)
+        if straighten:
+            straighten_interface(self.exodus_path, l_grip_id, left=True)
+            straighten_interface(self.exodus_path, r_grip_id, left=False)
         scale_gripped_microstructure(self.exodus_path, l_grip_id, r_grip_id, grip_length, micro_length)
 
     def scale_mesh(self, length:float, direction:str="x") -> None:

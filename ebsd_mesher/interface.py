@@ -245,17 +245,18 @@ class Interface:
         self.__check_mesh__()
         self.__controller__.export_elements(degrees)
 
-    def fix_grip_interfaces(self, grip_length:float, micro_length:float) -> None:
+    def fix_grip_interfaces(self, grip_length:float, micro_length:float, straighten:bool=True) -> None:
         """
         Fixes the interfaces between the grips and the microstructure
 
         Parameters:
         * `grip_length`:  The desired length of the grip
         * `micro_length`: The desired length of the microstructure
+        * `straighten`:   Whether to also straighten the grip interfaces
         """
         self.__print__("Fixing the interface between the grip and the microstructure")
         self.__check_grips__()
-        self.__controller__.fix_grip_interfaces(grip_length, micro_length)
+        self.__controller__.fix_grip_interfaces(grip_length, micro_length, straighten)
 
     def scale_mesh(self, length:float, direction:str) -> None:
         """
