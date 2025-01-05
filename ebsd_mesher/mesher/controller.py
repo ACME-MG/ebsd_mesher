@@ -274,6 +274,11 @@ class Controller:
         * `num_processors`: The number of processors to use to create the mesh
         """
 
+        # Check whether there are any voids and announce a message if there are
+        grain_ids = list(set([element.get_grain_id() for element_list in self.element_grid for element in element_list]))
+        if VOID_ELEMENT_ID in grain_ids:
+            raise ValueError("There are still voids in this mesh (process further and remesh)!")
+
         # Generate the mesh and renumber the meshed grains (ascending and consecutive)
         print()
         coarse_mesh(psculpt_path, z_elements, num_processors, self.element_grid,
