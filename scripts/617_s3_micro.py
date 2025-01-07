@@ -13,8 +13,8 @@ itf = Interface()
 itf.define_headers("x", "y", "grainId", "Euler_phi1", "Euler_Phi", "Euler_phi2")
 
 # Read EBSD data
-itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res5gs20/ebsdExportColumnsTableReduced_FillRegion.csv", 5)
-# itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res10gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 10)
+# itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res5gs20/ebsdExportColumnsTableReduced_FillRegion.csv", 5)
+itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res10gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 10)
 # itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res15gs10/ebsdExportColumnsTableReduced_FillRegion.csv", 15)
 # itf.import_ebsd("/mnt/c/Users/janzen/OneDrive - UNSW/PhD/data/2024-06-26 (ansto_617_s3)/prior_with_stage/res20gs5/ebsdExportColumnsTableReduced_FillRegion.csv",  20)
 
@@ -74,22 +74,20 @@ itf.plot_ebsd(
 )
 
 # Mesh the EBSD map and plot
-# itf.mesh("~/cubit/psculpt.exe", z_elements=10)
-itf.mesh("~/cubit/psculpt.exe", z_elements=20)
+itf.mesh("~/cubit/psculpt.exe", z_elements=10)
+# itf.mesh("~/cubit/psculpt.exe", z_elements=3)
 itf.export_grains(degrees=False)
 itf.export_elements(degrees=False)
 itf.plot_mesh(
     mesh_path = "4_mesh_raw",
     ipf       = "x",
-    figure_x  = 40
+    figure_x  = 40,
 )
 
 # Fix the interfaces of the grips and scale the mesh
 itf.scale_mesh(nominal_length, "x")
 itf.scale_mesh(nominal_width, "y")
 itf.scale_mesh(300, "z")
-itf.plot_mesh(
-    mesh_path = "5_mesh_fixed",
-    ipf       = "x",
-    figure_x  = 40
-)
+itf.plot_mesh("5_mesh_fixed_xy", figure_x=40, directions="xy")
+itf.plot_mesh("5_mesh_fixed_yz", figure_x=40, directions="yz")
+itf.plot_mesh("5_mesh_fixed_xz", figure_x=40, directions="xz", positive=False)

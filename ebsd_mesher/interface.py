@@ -270,20 +270,25 @@ class Interface:
         self.__check_mesh__()
         self.__controller__.scale_mesh(length, direction)
 
-    def plot_mesh(self, mesh_path:str="mesh", ipf:str="x", figure_x:float=10) -> None:
+    def plot_mesh(self, mesh_path:str="mesh", ipf:str="x", figure_x:float=10,
+                  directions:str="xy", positive:bool=True) -> None:
         """
         Plots the generated mesh;
         relies on the mesh to have already been generated
 
         Parameters:
-        * `mesh_path`: Path to generate the plot
-        * `ipf`:       The IPF colour ("x", "y", "z")
-        * `figure_x`:  The initial horizontal size of the figures
+        * `mesh_path`:  Path to generate the plot
+        * `ipf`:        The IPF colour ("x", "y", "z")
+        * `figure_x`:   The initial horizontal size of the figures
+        * `directions`: The directions of to plot the mesh
+        * `positive`:   Whether to plot the positive or negative face
         """
         self.__print__("Generating an image of the mesh")
         self.__check_mesh__()
         mesh_path = self.__get_output__(mesh_path)
-        self.__controller__.plot_mesh(mesh_path, ipf, figure_x)
+        if len(directions) != 2 or not set(directions).issubset({"x", "y", "z"}):
+            raise ValueError("The 'directions' field must contain two characters from 'x', 'y', and 'z'")
+        self.__controller__.plot_mesh(mesh_path, ipf, figure_x, directions, positive)
 
     def __check_ebsd__(self) -> None:
         """

@@ -398,17 +398,20 @@ class Controller:
         factor = length / mesh_dimension
         scale_exodus_mesh(self.exodus_path, factor, direction)
 
-    def plot_mesh(self, mesh_path:str, ipf:str="x", figure_x:float=10) -> None:
+    def plot_mesh(self, mesh_path:str, ipf:str="x", figure_x:float=10,
+                  directions:str="xy", positive:bool=True) -> None:
         """
         Plots the generated mesh;
         relies on the mesh to have already been generated
 
         Parameters:
-        * `mesh_path`: Path to generate the plot
-        * `ipf`:       The IPF colour ("x", "y", "z")
-        * `figure_x`:  The initial horizontal size of the figures
+        * `mesh_path`:  Path to generate the plot
+        * `ipf`:        The IPF colour ("x", "y", "z")
+        * `figure_x`:   The initial horizontal size of the figures
+        * `directions`: The directions of to plot the mesh
+        * `positive`:   Whether to plot the positive or negative face
         """
         mesh_plotter = MeshPlotter(self.exodus_path, self.mesh_grains, figure_x)
-        mesh_plotter.plot_mesh(ipf)
+        mesh_plotter.plot_mesh(ipf, directions, positive)
         mesh_path = get_file_path_exists(mesh_path, "png")
         save_plot(mesh_path)

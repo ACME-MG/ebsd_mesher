@@ -38,23 +38,31 @@ class MeshPlotter:
         plt.ylim(0, y_max)
         self.axis.invert_yaxis()
 
-    def plot_mesh(self, ipf:str="x") -> None:
+    def plot_mesh(self, ipf:str="x", directions:str="xy", positive:bool=True) -> None:
         """
         Creates a plot of the mesh
 
         Parameters:
-        * `ipf`: The IPF direction to plot the mesh
+        * `ipf`:        The IPF direction to plot the mesh
+        * `directions`: The directions of to plot the mesh
+        * `positive`:   Whether to plot the positive or negative face
         """
 
         # Read mesh
         mesh = pv.read(self.exodus_path)[0]
+
+        # Initialise perspective
+        dir_to_index = {"x": 0, "y": 1, "z": 2}
+        included = [dir_to_index[dir] for dir in directions]
+        excluded = (set([0,1,2])-set(included)).pop()
+        face = 0 if positive else get_exodus_dimension(self.exodus_path, "xyz"[excluded])
 
         # Iterate and plot each grain
         for i, grain in enumerate(mesh):
             for cell_id in range(grain.n_cells):
                 
                 # Get cell coordinates and ignore if not surface
-                cell_coordinates = get_surface_cell_coordinates(grain, cell_id)
+                cell_coordinates = get_surface_cell_coordinates(grain, cell_id, included, excluded, face)
                 if cell_coordinates == []:
                     continue
 
@@ -71,19 +79,23 @@ class MeshPlotter:
                 polygon = patches.Polygon(cell_coordinates, closed=True, fill=True, facecolor=colour, edgecolor="black")
                 self.axis.add_patch(polygon)
 
-def get_surface_cell_coordinates(grain:pv.core.pointset.UnstructuredGrid, cell_id:int) -> list:
+def get_surface_cell_coordinates(grain:pv.core.pointset.UnstructuredGrid, cell_id:int,
+                                 included:list, excluded:int, face:float) -> list:
     """
     Gets the coordinates of a cell
 
     Parameters:
-    * `grain`:   The grain object
-    * `cell_id`: The cell ID
+    * `grain`:    The grain object
+    * `cell_id`:  The cell ID
+    * `included`: The coordinate positions to plot
+    * `excluded`: The coordinate position to not plot
+    * `face`:     The value on the unplotted axis to plot
 
     Returns the list of coordinates for the surface corners of the cell
     """
     point_ids = grain.get_cell(cell_id).point_ids
     corners = [list(point) for point in grain.points[point_ids]]
-    coordinates = [corner[:2] for corner in corners if corner[2] == 0]
+    coordinates = [[corner[i] for i in included] for corner in corners if corner[excluded] == face]
     return coordinates
 
 def on_segment(p:list, q:list, r:list): 
