@@ -13,8 +13,8 @@ itf = Interface(f"617_s1")
 itf.define_headers("x", "y", "grainId", "Euler_phi1", "Euler_Phi", "Euler_phi2")
 
 # Read EBSD data
-# EBSD_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data/2024-05-23 (ansto_617_s1)/hagb15/"
-EBSD_FOLDER = "/mnt/c/Users/z5208868/OneDrive - UNSW/PhD/data/2024-05-23 (ansto_617_s1)/hagb15/"
+# EBSD_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/H0419460/data/2024-05-23 (ansto_617_s1)/hagb15/"
+EBSD_FOLDER = "/mnt/c/Users/z5208868/OneDrive - UNSW/H0419460/data/2024-05-23 (ansto_617_s1)/hagb15/"
 FILE_PATH = "01_strain_0pct_on_stage_finalMapData20/ebsdExportColumnsTable_NoFill.csv"
 itf.import_ebsd(
     ebsd_path = f"{EBSD_FOLDER}/{FILE_PATH}",
